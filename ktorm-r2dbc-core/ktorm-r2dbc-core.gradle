@@ -1,0 +1,20 @@
+
+dependencies {
+    compileOnly "org.slf4j:slf4j-api:1.7.25"
+    compileOnly "commons-logging:commons-logging:1.2"
+    compileOnly "com.google.android:android:1.5_r4"
+}
+
+configurations {
+    testOutput.extendsFrom(testImplementation)
+}
+
+task testJar(type: Jar, dependsOn: testClasses) {
+    from sourceSets.test.output
+    archiveClassifier = "test"
+}
+
+artifacts {
+    testOutput testJar
+}
+

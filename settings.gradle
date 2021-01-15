@@ -1,0 +1,8 @@
+
+include "ktorm-r2dbc-core"
+
+rootProject.name = "ktorm-r2dbc"
+rootProject.children.each { project ->
+    project.buildFileName = "${project.name}.gradle"
+}
+
