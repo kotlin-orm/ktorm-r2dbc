@@ -17,4 +17,3 @@ task testJar(type: Jar, dependsOn: testClasses) {
 artifacts {
     testOutput testJar
 }
-

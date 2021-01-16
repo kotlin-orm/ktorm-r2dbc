@@ -2,6 +2,8 @@
 buildscript {
     ext {
         kotlinVersion = "1.4.21"
+        coroutinesVersion = "1.4.2"
+        r2dbcVersion = "0.8.3.RELEASE"
         detektVersion = "1.12.0-RC1"
     }
     repositories {
@@ -34,6 +36,9 @@ subprojects { project ->
     dependencies {
         api "org.jetbrains.kotlin:kotlin-stdlib:${kotlinVersion}"
         api "org.jetbrains.kotlin:kotlin-reflect:${kotlinVersion}"
+        api "org.jetbrains.kotlinx:kotlinx-coroutines-core:${coroutinesVersion}"
+        api "org.jetbrains.kotlinx:kotlinx-coroutines-reactive:${coroutinesVersion}"
+        api "io.r2dbc:r2dbc-spi:${r2dbcVersion}"
         testImplementation "junit:junit:4.12"
         detektPlugins "io.gitlab.arturbosch.detekt:detekt-formatting:${detektVersion}"
     }
@@ -78,7 +83,7 @@ subprojects { project ->
 
                 pom {
                     name = project.name
-                    description = "A lightweight ORM framework for Kotlin based on R2DBC and Coroutines. "
+                    description = "A lightweight ORM framework for Kotlin based on R2DBC and Coroutines."
                     url = "https://github.com/kotlin-orm/ktorm-r2dbc"
                     licenses {
                         license {
@@ -143,4 +148,3 @@ task printClasspath() {
         println("Classpath written to build/ktorm-r2dbc.classpath")
     }
 }
-
