@@ -46,11 +46,6 @@ public interface TransactionManager {
      * @throws [IllegalStateException] if there is already a transaction opened.
      */
     public suspend fun newTransaction(isolation: IsolationLevel? = defaultIsolation): Transaction
-
-    /**
-     * Create a native R2DBC connection to the database.
-     */
-    public suspend fun newConnection(): Connection
 }
 
 /**
