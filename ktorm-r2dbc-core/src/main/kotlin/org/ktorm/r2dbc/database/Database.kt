@@ -3,8 +3,11 @@ package org.ktorm.r2dbc.database
 import io.r2dbc.spi.*
 import kotlinx.coroutines.reactive.awaitSingle
 import kotlinx.coroutines.reactive.awaitSingleOrNull
+import org.ktorm.r2dbc.expression.ArgumentExpression
+import org.ktorm.r2dbc.expression.SqlExpression
 import org.ktorm.r2dbc.logging.Logger
 import org.ktorm.r2dbc.logging.detectLoggerImplementation
+import org.ktorm.r2dbc.schema.SqlType
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
@@ -67,6 +70,42 @@ public class Database(
                     transaction.close()
                 }
             }
+        }
+    }
+
+    public fun formatExpression(
+        expression: SqlExpression,
+        beautifySql: Boolean = false,
+        indentSize: Int = 2
+    ): Pair<String, List<ArgumentExpression<*>>> {
+        val formatter = dialect.createSqlFormatter(this, beautifySql, indentSize)
+        formatter.visit(expression)
+        return Pair(formatter.sql, formatter.parameters)
+    }
+
+    @OptIn(ExperimentalContracts::class)
+    public suspend inline fun <T> executeExpression(expression: SqlExpression, func: (Statement) -> T): T {
+        contract {
+            callsInPlace(func, InvocationKind.EXACTLY_ONCE)
+        }
+
+        val (sql, args) = formatExpression(expression)
+
+        if (logger.isDebugEnabled()) {
+            logger.debug("SQL: $sql")
+            logger.debug("Parameters: " + args.map { it.value.toString() })
+        }
+
+        useConnection { conn ->
+            val statement = conn.createStatement(sql)
+
+            for ((i, expr) in args.withIndex()) {
+                @Suppress("UNCHECKED_CAST")
+                val sqlType = expr.sqlType as SqlType<Any>
+                sqlType.bindParameter(statement, i, expr.value)
+            }
+
+            return func(statement)
         }
     }
 
