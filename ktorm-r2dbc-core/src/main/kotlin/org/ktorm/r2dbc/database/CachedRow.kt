@@ -33,6 +33,12 @@ public open class CachedRow(row: Row, metadata: RowMetadata): Row {
             Double::class -> getDouble(name)
             BigDecimal::class -> getBigDecimal(name)
             ByteArray::class -> getBytes(name)
+            LocalDate::class -> getDate(name)
+            LocalTime::class -> getTime(name)
+            LocalDateTime::class -> getDateTime(name)
+            ZonedDateTime::class -> getZonedDateTime(name)
+            OffsetDateTime::class -> getOffsetDateTime(name)
+            Instant::class -> getInstant(name)
             else -> getColumnValue(name)
         }
 
@@ -131,28 +137,6 @@ public open class CachedRow(row: Row, metadata: RowMetadata): Row {
         }
     }
 
-    private fun getDateTime(name: String): LocalDateTime? {
-        return when (val value = getColumnValue(name)) {
-            null -> null
-            is LocalDateTime -> value
-            is LocalDate -> value.atStartOfDay()
-            is ZonedDateTime -> value.toLocalDateTime()
-            is OffsetDateTime -> value.toLocalDateTime()
-            is Number -> Instant.ofEpochMilli(value.toLong()).atZone(ZoneId.systemDefault()).toLocalDateTime()
-            is String -> {
-                val number = value.toLongOrNull()
-                if (number != null) {
-                    Instant.ofEpochMilli(number).atZone(ZoneId.systemDefault()).toLocalDateTime()
-                } else {
-                    LocalDateTime.parse(value)
-                }
-            }
-            else -> {
-                throw IllegalArgumentException("Cannot convert ${value.javaClass.name} value to LocalDateTime.")
-            }
-        }
-    }
-
     private fun getDate(name: String): LocalDate? {
         return when (val value = getColumnValue(name)) {
             null -> null
@@ -160,6 +144,7 @@ public open class CachedRow(row: Row, metadata: RowMetadata): Row {
             is LocalDateTime -> value.toLocalDate()
             is ZonedDateTime -> value.toLocalDate()
             is OffsetDateTime -> value.toLocalDate()
+            is Instant -> value.atZone(ZoneId.systemDefault()).toLocalDate()
             is Number -> Instant.ofEpochMilli(value.toLong()).atZone(ZoneId.systemDefault()).toLocalDate()
             is String -> {
                 val number = value.toLongOrNull()
@@ -182,6 +167,7 @@ public open class CachedRow(row: Row, metadata: RowMetadata): Row {
             is LocalDateTime -> value.toLocalTime()
             is ZonedDateTime -> value.toLocalTime()
             is OffsetDateTime -> value.toLocalTime()
+            is Instant -> value.atZone(ZoneId.systemDefault()).toLocalTime()
             is Number -> Instant.ofEpochMilli(value.toLong()).atZone(ZoneId.systemDefault()).toLocalTime()
             is String -> {
                 val number = value.toLongOrNull()
@@ -193,6 +179,98 @@ public open class CachedRow(row: Row, metadata: RowMetadata): Row {
             }
             else -> {
                 throw IllegalArgumentException("Cannot convert ${value.javaClass.name} value to LocalTime.")
+            }
+        }
+    }
+
+    private fun getDateTime(name: String): LocalDateTime? {
+        return when (val value = getColumnValue(name)) {
+            null -> null
+            is LocalDateTime -> value
+            is LocalDate -> value.atStartOfDay()
+            is ZonedDateTime -> value.toLocalDateTime()
+            is OffsetDateTime -> value.toLocalDateTime()
+            is Instant -> value.atZone(ZoneId.systemDefault()).toLocalDateTime()
+            is Number -> Instant.ofEpochMilli(value.toLong()).atZone(ZoneId.systemDefault()).toLocalDateTime()
+            is String -> {
+                val number = value.toLongOrNull()
+                if (number != null) {
+                    Instant.ofEpochMilli(number).atZone(ZoneId.systemDefault()).toLocalDateTime()
+                } else {
+                    LocalDateTime.parse(value)
+                }
+            }
+            else -> {
+                throw IllegalArgumentException("Cannot convert ${value.javaClass.name} value to LocalDateTime.")
+            }
+        }
+    }
+
+    private fun getZonedDateTime(name: String): ZonedDateTime? {
+        return when (val value = getColumnValue(name)) {
+            null -> null
+            is ZonedDateTime -> value
+            is LocalDate -> value.atStartOfDay(ZoneId.systemDefault())
+            is LocalDateTime -> value.atZone(ZoneId.systemDefault())
+            is OffsetDateTime -> value.toZonedDateTime()
+            is Instant -> value.atZone(ZoneId.systemDefault())
+            is Number -> Instant.ofEpochMilli(value.toLong()).atZone(ZoneId.systemDefault())
+            is String -> {
+                val number = value.toLongOrNull()
+                if (number != null) {
+                    Instant.ofEpochMilli(number).atZone(ZoneId.systemDefault())
+                } else {
+                    ZonedDateTime.parse(value)
+                }
+            }
+            else -> {
+                throw IllegalArgumentException("Cannot convert ${value.javaClass.name} value to LocalDateTime.")
+            }
+        }
+    }
+
+    private fun getOffsetDateTime(name: String): OffsetDateTime? {
+        return when (val value = getColumnValue(name)) {
+            null -> null
+            is OffsetDateTime -> value
+            is LocalDate -> value.atStartOfDay(ZoneId.systemDefault()).toOffsetDateTime()
+            is LocalDateTime -> value.atZone(ZoneId.systemDefault()).toOffsetDateTime()
+            is ZonedDateTime -> value.toOffsetDateTime()
+            is Instant -> value.atZone(ZoneId.systemDefault()).toOffsetDateTime()
+            is Number -> Instant.ofEpochMilli(value.toLong()).atZone(ZoneId.systemDefault()).toOffsetDateTime()
+            is String -> {
+                val number = value.toLongOrNull()
+                if (number != null) {
+                    Instant.ofEpochMilli(number).atZone(ZoneId.systemDefault()).toOffsetDateTime()
+                } else {
+                    OffsetDateTime.parse(value)
+                }
+            }
+            else -> {
+                throw IllegalArgumentException("Cannot convert ${value.javaClass.name} value to LocalDateTime.")
+            }
+        }
+    }
+
+    private fun getInstant(name: String): Instant? {
+        return when (val value = getColumnValue(name)) {
+            null -> null
+            is Instant -> value
+            is LocalDate -> value.atStartOfDay(ZoneId.systemDefault()).toInstant()
+            is LocalDateTime -> value.atZone(ZoneId.systemDefault()).toInstant()
+            is ZonedDateTime -> value.toInstant()
+            is OffsetDateTime -> value.toInstant()
+            is Number -> Instant.ofEpochMilli(value.toLong())
+            is String -> {
+                val number = value.toLongOrNull()
+                if (number != null) {
+                    Instant.ofEpochMilli(number)
+                } else {
+                    Instant.parse(value)
+                }
+            }
+            else -> {
+                throw IllegalArgumentException("Cannot convert ${value.javaClass.name} value to LocalDateTime.")
             }
         }
     }
