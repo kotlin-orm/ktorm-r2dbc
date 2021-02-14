@@ -12,9 +12,33 @@ import java.util.*
  * Created by vince on Feb 10, 2021.
  */
 public open class CachedRow(row: Row, metadata: RowMetadata): Row {
-    private val values = metadata.columnMetadatas.associate { it.name.toUpperCase() to row[it.name] }
+    private val _values = readValues(row, metadata)
+    private val _metadata = readMetadata(row, metadata)
 
-    public val metadata: RowMetadata = if (metadata is CachedRowMetadata) metadata else CachedRowMetadata(metadata)
+    public val metadata: RowMetadata get() = _metadata
+
+    private fun readValues(row: Row, metadata: RowMetadata): Map<String, Any?> {
+        if (row is CachedRow) {
+            return row._values
+        } else {
+            return metadata.columnMetadatas.reversed().associate { column ->
+                val value = row.get(column.name)
+                column.name.toUpperCase() to when (value) {
+                    is Clob -> CachedClob(value)
+                    is Blob -> CachedBlob(value)
+                    else -> value
+                }
+            }
+        }
+    }
+
+    private fun readMetadata(row: Row, metadata: RowMetadata): CachedRowMetadata {
+        return when {
+            row is CachedRow -> row._metadata
+            metadata is CachedRowMetadata -> metadata
+            else -> CachedRowMetadata(metadata)
+        }
+    }
 
     override fun <T : Any> get(index: Int, type: Class<T>): T? {
         val column = metadata.getColumnMetadata(index)
@@ -46,7 +70,7 @@ public open class CachedRow(row: Row, metadata: RowMetadata): Row {
     }
 
     private fun getColumnValue(name: String): Any? {
-        return values[name.toUpperCase()]
+        return _values[name.toUpperCase()]
     }
 
     private fun getString(name: String): String? {
