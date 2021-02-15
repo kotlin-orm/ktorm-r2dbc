@@ -4,6 +4,7 @@ import io.r2dbc.spi.Blob
 import io.r2dbc.spi.Clob
 import io.r2dbc.spi.Row
 import io.r2dbc.spi.RowMetadata
+import kotlinx.coroutines.runBlocking
 import java.math.BigDecimal
 import java.time.*
 import java.util.*
@@ -24,8 +25,8 @@ public open class CachedRow(row: Row, metadata: RowMetadata): Row {
             return metadata.columnMetadatas.reversed().associate { column ->
                 val value = row.get(column.name)
                 column.name.toUpperCase() to when (value) {
-                    is Clob -> CachedClob(value)
-                    is Blob -> CachedBlob(value)
+                    is Clob -> Clob.from(CachedPublisher(value.stream()))
+                    is Blob -> Blob.from(CachedPublisher(value.stream()))
                     else -> value
                 }
             }
@@ -76,7 +77,7 @@ public open class CachedRow(row: Row, metadata: RowMetadata): Row {
     private fun getString(name: String): String? {
         return when (val value = getColumnValue(name)) {
             is String -> value
-            is Clob -> "" // todo: clob
+            is Clob -> runBlocking { value.toText() }
             else -> value?.toString()
         }
     }
@@ -156,7 +157,7 @@ public open class CachedRow(row: Row, metadata: RowMetadata): Row {
         return when (val value = getColumnValue(name)) {
             null -> null
             is ByteArray -> Arrays.copyOf(value, value.size)
-            is Blob -> TODO("blob/bytebuffer")
+            is Blob -> runBlocking { value.toBytes() }
             else -> throw IllegalArgumentException("Cannot convert ${value.javaClass.name} value to byte[].")
         }
     }
