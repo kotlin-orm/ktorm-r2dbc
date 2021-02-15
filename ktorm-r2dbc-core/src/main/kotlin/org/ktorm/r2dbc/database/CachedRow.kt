@@ -6,8 +6,9 @@ import io.r2dbc.spi.Row
 import io.r2dbc.spi.RowMetadata
 import kotlinx.coroutines.runBlocking
 import java.math.BigDecimal
+import java.math.BigInteger
+import java.nio.ByteBuffer
 import java.time.*
-import java.util.*
 
 /**
  * Created by vince on Feb 10, 2021.
@@ -49,6 +50,7 @@ public open class CachedRow(row: Row, metadata: RowMetadata): Row {
     override fun <T : Any> get(name: String, type: Class<T>): T? {
         val result = when (type.kotlin) {
             String::class -> getString(name)
+            Clob::class -> getClob(name)
             Boolean::class -> getBoolean(name)
             Byte::class -> getByte(name)
             Short::class -> getShort(name)
@@ -57,7 +59,10 @@ public open class CachedRow(row: Row, metadata: RowMetadata): Row {
             Float::class -> getFloat(name)
             Double::class -> getDouble(name)
             BigDecimal::class -> getBigDecimal(name)
+            BigInteger::class -> getBigInteger(name)
+            ByteBuffer::class -> getByteBuffer(name)
             ByteArray::class -> getBytes(name)
+            Blob::class -> getBlob(name)
             LocalDate::class -> getDate(name)
             LocalTime::class -> getTime(name)
             LocalDateTime::class -> getDateTime(name)
@@ -77,8 +82,17 @@ public open class CachedRow(row: Row, metadata: RowMetadata): Row {
     private fun getString(name: String): String? {
         return when (val value = getColumnValue(name)) {
             is String -> value
-            is Clob -> runBlocking { value.toText() }
+            is Clob -> runBlocking { value.toText() } // Won't block if data was pre-fetched by CachedPublisher.
             else -> value?.toString()
+        }
+    }
+
+    private fun getClob(name: String): Clob? {
+        return when (val value = getColumnValue(name)) {
+            null -> null
+            is Clob -> value
+            is String -> Clob.from(IterableAsPublisher(value))
+            else -> throw IllegalArgumentException("Cannot convert ${value.javaClass.name} value to Clob.")
         }
     }
 
@@ -153,12 +167,41 @@ public open class CachedRow(row: Row, metadata: RowMetadata): Row {
         }
     }
 
+    private fun getBigInteger(name: String): BigInteger? {
+        return when (val value = getColumnValue(name)) {
+            is BigInteger -> value
+            is Boolean -> if (value) BigInteger.ONE else BigInteger.ZERO
+            else -> value?.toString()?.toBigInteger()
+        }
+    }
+
+    private fun getByteBuffer(name: String): ByteBuffer? {
+        return when (val value = getColumnValue(name)) {
+            null -> null
+            is ByteBuffer -> value
+            is ByteArray -> ByteBuffer.wrap(value)
+            is Blob -> runBlocking { value.toByteBuffer() } // Won't block if data was pre-fetched by CachedPublisher.
+            else -> throw IllegalArgumentException("Cannot convert ${value.javaClass.name} value to ByteBuffer.")
+        }
+    }
+
     private fun getBytes(name: String): ByteArray? {
         return when (val value = getColumnValue(name)) {
             null -> null
-            is ByteArray -> Arrays.copyOf(value, value.size)
-            is Blob -> runBlocking { value.toBytes() }
+            is ByteArray -> value
+            is ByteBuffer -> value.toBytes()
+            is Blob -> runBlocking { value.toBytes() } // Won't block if data was pre-fetched by CachedPublisher.
             else -> throw IllegalArgumentException("Cannot convert ${value.javaClass.name} value to byte[].")
+        }
+    }
+
+    private fun getBlob(name: String): Blob? {
+        return when (val value = getColumnValue(name)) {
+            null -> null
+            is Blob -> value
+            is ByteBuffer -> Blob.from(IterableAsPublisher(value))
+            is ByteArray -> Blob.from(IterableAsPublisher(ByteBuffer.wrap(value)))
+            else -> throw IllegalArgumentException("Cannot convert ${value.javaClass.name} value to Blob.")
         }
     }
 

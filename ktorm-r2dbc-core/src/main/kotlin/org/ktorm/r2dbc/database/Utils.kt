@@ -51,7 +51,7 @@ public fun ByteBuffer.toBytes(): ByteArray {
     return result
 }
 
-public suspend fun Clob.toStringBuilder(): StringBuilder {
+public suspend fun Clob.toText(): String {
     val buffers = stream().toList()
     val result = StringBuilder(buffers.sumOf { it.length })
 
@@ -60,11 +60,7 @@ public suspend fun Clob.toStringBuilder(): StringBuilder {
         result.append(buffer)
     }
 
-    return result
-}
-
-public suspend fun Clob.toText(): String {
-    return toStringBuilder().toString()
+    return result.toString()
 }
 
 internal class CachedPublisher<T : Any>(source: Publisher<T>) : Publisher<T> {
@@ -76,6 +72,7 @@ internal class CachedPublisher<T : Any>(source: Publisher<T>) : Publisher<T> {
     private val downstreamFinished = AtomicBoolean()
 
     init {
+        // Pre-fetch the data.
         source.subscribe(object : Subscriber<T> {
             override fun onSubscribe(s: Subscription) {
                 s.request(Long.MAX_VALUE)
