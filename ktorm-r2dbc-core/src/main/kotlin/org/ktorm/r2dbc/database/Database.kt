@@ -84,7 +84,7 @@ public class Database(
     }
 
     @OptIn(ExperimentalContracts::class)
-    public suspend inline fun <T> executeExpression(expression: SqlExpression, func: (Statement) -> T): T {
+    public suspend inline fun <T> executeExpression(expression: SqlExpression, func: (Result) -> T): T {
         contract {
             callsInPlace(func, InvocationKind.EXACTLY_ONCE)
         }
@@ -105,7 +105,31 @@ public class Database(
                 sqlType.bindParameter(statement, i, expr.value)
             }
 
-            return func(statement)
+            return func(statement.execute().awaitSingle())
+        }
+    }
+
+    public suspend fun executeQuery(expression: SqlExpression): List<CachedRow> {
+        executeExpression(expression) { result ->
+            val rows = result.map { row, metadata -> CachedRow(row, metadata) }.toList()
+
+            if (logger.isDebugEnabled()) {
+                logger.debug("Results: ${rows.size}")
+            }
+
+            return rows
+        }
+    }
+
+    public suspend fun executeUpdate(expression: SqlExpression): Int {
+        executeExpression(expression) { result ->
+            val effects = result.rowsUpdated.awaitSingle()
+
+            if (logger.isDebugEnabled()) {
+                logger.debug("Effects: $effects")
+            }
+
+            return effects
         }
     }
 
