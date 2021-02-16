@@ -46,9 +46,9 @@ public class SimpleSqlType<T : Any>(public val kotlinType: KClass<T>) : SqlType<
         return row.get(name, kotlinType.java)
     }
 
-    public companion object {
-        public inline operator fun <reified T : Any> invoke(): SimpleSqlType<T> = SimpleSqlType(T::class)
-    }
+//    public companion object {
+//        public inline operator fun <reified T : Any> invoke(): SimpleSqlType<T> = SimpleSqlType(T::class)
+//    }
 }
 
 public class TransformedSqlType<T : Any, R : Any>(

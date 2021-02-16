@@ -450,7 +450,7 @@ public data class InListExpression<T : Any>(
     val query: QueryExpression? = null,
     val values: List<ScalarExpression<T>>? = null,
     val notInList: Boolean = false,
-    override val sqlType: SqlType<Boolean> = SimpleSqlType(),
+    override val sqlType: SqlType<Boolean> = SimpleSqlType(Boolean::class),
     override val isLeafNode: Boolean = false,
     override val extraProperties: Map<String, Any> = emptyMap()
 ) : ScalarExpression<Boolean>()
@@ -464,7 +464,7 @@ public data class InListExpression<T : Any>(
 public data class ExistsExpression(
     val query: QueryExpression,
     val notExists: Boolean = false,
-    override val sqlType: SqlType<Boolean> = SimpleSqlType(),
+    override val sqlType: SqlType<Boolean> = SimpleSqlType(Boolean::class),
     override val isLeafNode: Boolean = false,
     override val extraProperties: Map<String, Any> = emptyMap()
 ) : ScalarExpression<Boolean>()
@@ -533,7 +533,7 @@ public data class BetweenExpression<T : Any>(
     val lower: ScalarExpression<T>,
     val upper: ScalarExpression<T>,
     val notBetween: Boolean = false,
-    override val sqlType: SqlType<Boolean> = SimpleSqlType(),
+    override val sqlType: SqlType<Boolean> = SimpleSqlType(Boolean::class),
     override val isLeafNode: Boolean = false,
     override val extraProperties: Map<String, Any> = emptyMap()
 ) : ScalarExpression<Boolean>()
