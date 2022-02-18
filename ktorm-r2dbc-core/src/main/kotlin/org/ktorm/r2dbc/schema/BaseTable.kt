@@ -18,7 +18,7 @@ package org.ktorm.r2dbc.schema
 
 import org.ktorm.r2dbc.dsl.QueryRow
 import org.ktorm.r2dbc.expression.TableExpression
-import org.ktorm.schema.*
+import org.ktorm.r2dbc.schema.*
 import java.util.*
 import kotlin.reflect.KClass
 import kotlin.reflect.jvm.jvmErasure

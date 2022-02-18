@@ -18,7 +18,7 @@ package org.ktorm.r2dbc.entity
 
 import org.ktorm.r2dbc.database.Database
 import org.ktorm.r2dbc.schema.Table
-import org.ktorm.schema.TypeReference
+import org.ktorm.r2dbc.schema.TypeReference
 import java.io.ObjectInputStream
 import java.io.ObjectOutputStream
 import java.io.Serializable

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.ktorm.schema
+package org.ktorm.r2dbc.schema
 
 import java.lang.reflect.ParameterizedType
 import java.lang.reflect.Type

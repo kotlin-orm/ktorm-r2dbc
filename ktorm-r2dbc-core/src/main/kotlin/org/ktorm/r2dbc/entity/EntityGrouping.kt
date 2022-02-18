@@ -16,13 +16,10 @@
 
 package org.ktorm.r2dbc.entity
 
-import kotlinx.coroutines.flow.collect
 import org.ktorm.r2dbc.dsl.*
 import org.ktorm.r2dbc.schema.BaseTable
 import org.ktorm.r2dbc.schema.ColumnDeclaring
 import java.util.*
-import kotlin.collections.ArrayList
-import kotlin.collections.LinkedHashMap
 import kotlin.experimental.ExperimentalTypeInference
 
 /**
