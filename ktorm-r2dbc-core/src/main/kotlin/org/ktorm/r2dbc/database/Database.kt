@@ -31,7 +31,6 @@ public class Database(
      * The name of the connected database product, eg. MySQL, H2.
      */
     public val productName: String
-
     /**
      * The version of the connected database product.
      */
@@ -42,12 +41,92 @@ public class Database(
      */
     public val keywords: Set<String>
 
+    /**
+     * The string used to quote SQL identifiers, returns an empty string if identifier quoting is not supported.
+     */
+    public val identifierQuoteString: String
+
+    /**
+     * All the "extra" characters that can be used in unquoted identifier names (those beyond a-z, A-Z, 0-9 and _).
+     */
+    public val extraNameCharacters: String
+
+    /**
+     * Whether this database treats mixed case unquoted SQL identifiers as case sensitive and as a result
+     * stores them in mixed case.
+     *
+     * @since 3.1.0
+     */
+    public val supportsMixedCaseIdentifiers: Boolean
+
+    /**
+     * Whether this database treats mixed case unquoted SQL identifiers as case insensitive and
+     * stores them in mixed case.
+     *
+     * @since 3.1.0
+     */
+    public val storesMixedCaseIdentifiers: Boolean
+
+    /**
+     * Whether this database treats mixed case unquoted SQL identifiers as case insensitive and
+     * stores them in upper case.
+     *
+     * @since 3.1.0
+     */
+    public val storesUpperCaseIdentifiers: Boolean
+
+    /**
+     * Whether this database treats mixed case unquoted SQL identifiers as case insensitive and
+     * stores them in lower case.
+     *
+     * @since 3.1.0
+     */
+    public val storesLowerCaseIdentifiers: Boolean
+
+    /**
+     * Whether this database treats mixed case quoted SQL identifiers as case sensitive and as a result
+     * stores them in mixed case.
+     *
+     * @since 3.1.0
+     */
+    public val supportsMixedCaseQuotedIdentifiers: Boolean
+
+    /**
+     * Whether this database treats mixed case quoted SQL identifiers as case insensitive and
+     * stores them in mixed case.
+     *
+     * @since 3.1.0
+     */
+    public val storesMixedCaseQuotedIdentifiers: Boolean
+
+    /**
+     * Whether this database treats mixed case quoted SQL identifiers as case insensitive and
+     * stores them in upper case.
+     *
+     * @since 3.1.0
+     */
+    public val storesUpperCaseQuotedIdentifiers: Boolean
+
+    /**
+     * Whether this database treats mixed case quoted SQL identifiers as case insensitive and
+     * stores them in lower case.
+     *
+     * @since 3.1.0
+     */
+    public val storesLowerCaseQuotedIdentifiers: Boolean
+
+    /**
+     * The maximum number of characters this database allows for a column name. Zero means that there is no limit
+     * or the limit is not known.
+     *
+     * @since 3.1.0
+     */
+    public val maxColumnNameLength: Int
 
 
 
     init {
         fun kotlin.Result<String?>.orEmpty() = getOrNull().orEmpty()
-        fun kotlin.Result<Boolean>.orFalse() = getOrDefault(false)
 
         runBlocking {
             useConnection { conn ->
@@ -55,6 +134,17 @@ public class Database(
                 productName = metadata.runCatching { databaseProductName }.orEmpty()
                 productVersion = metadata.runCatching { databaseVersion }.orEmpty()
                 keywords = ANSI_SQL_2003_KEYWORDS + dialect.sqlKeywords
+                identifierQuoteString = dialect.identifierQuoteString
+                extraNameCharacters = dialect.extraNameCharacters
+                supportsMixedCaseIdentifiers = dialect.supportsMixedCaseIdentifiers
+                storesMixedCaseIdentifiers = dialect.storesMixedCaseIdentifiers
+                storesUpperCaseIdentifiers = dialect.storesUpperCaseIdentifiers
+                storesLowerCaseIdentifiers = dialect.storesLowerCaseIdentifiers
+                supportsMixedCaseQuotedIdentifiers = dialect.supportsMixedCaseQuotedIdentifiers
+                storesMixedCaseQuotedIdentifiers = dialect.storesMixedCaseQuotedIdentifiers
+                storesUpperCaseQuotedIdentifiers = dialect.storesUpperCaseQuotedIdentifiers
+                storesLowerCaseQuotedIdentifiers = dialect.storesLowerCaseQuotedIdentifiers
+                maxColumnNameLength = dialect.maxColumnNameLength
             }
 
             if (logger.isInfoEnabled()) {

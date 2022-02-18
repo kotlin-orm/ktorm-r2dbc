@@ -82,7 +82,7 @@ public abstract class SqlFormatter(
                 _builder.append(keyword.lowercase())
             }
             null -> {
-                if (database.dialect.supportsMixedCaseIdentifiers || !database.dialect.storesLowerCaseIdentifiers) {
+                if (database.supportsMixedCaseIdentifiers || !database.storesLowerCaseIdentifiers) {
                     _builder.append(keyword.uppercase())
                 } else {
                     _builder.append(keyword.lowercase())
@@ -104,8 +104,8 @@ public abstract class SqlFormatter(
             return true
         }
         if (identifier.isMixedCase
-            && !database.dialect.supportsMixedCaseIdentifiers
-            && database.dialect.supportsMixedCaseQuotedIdentifiers
+            && !database.supportsMixedCaseIdentifiers
+            && database.supportsMixedCaseQuotedIdentifiers
         ) {
             return true
         }
@@ -113,37 +113,36 @@ public abstract class SqlFormatter(
     }
 
     protected val String.quoted: String get() {
-        val dialect = database.dialect
         if (shouldQuote(this)) {
-            if (dialect.supportsMixedCaseQuotedIdentifiers) {
-                return "${dialect.identifierQuoteString}${this}${dialect.identifierQuoteString}"
+            if (database.supportsMixedCaseQuotedIdentifiers) {
+                return "${database.identifierQuoteString}${this}${database.identifierQuoteString}"
             } else {
-                if (dialect.storesUpperCaseQuotedIdentifiers) {
-                    return "${dialect.identifierQuoteString}${this.uppercase()}${dialect.identifierQuoteString}"
+                if (database.storesUpperCaseQuotedIdentifiers) {
+                    return "${database.identifierQuoteString}${this.uppercase()}${database.identifierQuoteString}"
                 }
-                if (dialect.storesLowerCaseQuotedIdentifiers) {
-                    return "${dialect.identifierQuoteString}${this.lowercase()}${dialect.identifierQuoteString}"
+                if (database.storesLowerCaseQuotedIdentifiers) {
+                    return "${database.identifierQuoteString}${this.lowercase()}${database.identifierQuoteString}"
                 }
-                if (dialect.storesMixedCaseQuotedIdentifiers) {
-                    return "${dialect.identifierQuoteString}${this}${dialect.identifierQuoteString}"
+                if (database.storesMixedCaseQuotedIdentifiers) {
+                    return "${database.identifierQuoteString}${this}${database.identifierQuoteString}"
                 }
-                // Should never happen, but it's still needed as some dialect drivers are not implemented correctly.
-                return "${dialect.identifierQuoteString}${this}${dialect.identifierQuoteString}"
+                // Should never happen, but it's still needed as some database drivers are not implemented correctly.
+                return "${database.identifierQuoteString}${this}${database.identifierQuoteString}"
             }
         } else {
-            if (dialect.supportsMixedCaseIdentifiers) {
+            if (database.supportsMixedCaseIdentifiers) {
                 return this
             } else {
-                if (dialect.storesUpperCaseIdentifiers) {
+                if (database.storesUpperCaseIdentifiers) {
                     return this.uppercase()
                 }
-                if (dialect.storesLowerCaseIdentifiers) {
+                if (database.storesLowerCaseIdentifiers) {
                     return this.lowercase()
                 }
-                if (dialect.storesMixedCaseIdentifiers) {
+                if (database.storesMixedCaseIdentifiers) {
                     return this
                 }
-                // Should never happen, but it's still needed as some dialect drivers are not implemented correctly.
+                // Should never happen, but it's still needed as some database drivers are not implemented correctly.
                 return this
             }
         }
@@ -171,7 +170,7 @@ public abstract class SqlFormatter(
         if (this == '_') {
             return true
         }
-        if (this in database.dialect.extraNameCharacters) {
+        if (this in database.extraNameCharacters) {
             return true
         }
         return false
