@@ -18,7 +18,6 @@ package org.ktorm.r2dbc.expression
 
 import org.ktorm.r2dbc.database.Database
 import org.ktorm.r2dbc.database.DialectFeatureNotSupportedException
-import java.util.*
 
 /**
  * Subclass of [SqlExpressionVisitor], visiting SQL expression trees using visitor pattern. After the visit completes,
@@ -75,78 +74,79 @@ public abstract class SqlFormatter(
     }
 
     protected fun writeKeyword(keyword: String) {
-        _builder.append(keyword)
-//        when (database.generateSqlInUpperCase) {
-//            true -> {
-//                _builder.append(keyword.toUpperCase())
-//            }
-//            false -> {
-//                _builder.append(keyword.toLowerCase())
-//            }
-//            null -> {
-//                if (database.supportsMixedCaseIdentifiers || !database.storesLowerCaseIdentifiers) {
-//                    _builder.append(keyword.toUpperCase())
-//                } else {
-//                    _builder.append(keyword.toLowerCase())
-//                }
-//            }
-//        }
+        when (database.generateSqlInUpperCase) {
+            true -> {
+                _builder.append(keyword.uppercase())
+            }
+            false -> {
+                _builder.append(keyword.lowercase())
+            }
+            null -> {
+                if (database.dialect.supportsMixedCaseIdentifiers || !database.dialect.storesLowerCaseIdentifiers) {
+                    _builder.append(keyword.uppercase())
+                } else {
+                    _builder.append(keyword.lowercase())
+                }
+            }
+        }
     }
 
     protected open fun checkColumnName(name: String) { }
 
     protected open fun shouldQuote(identifier: String): Boolean {
-//        if (database.alwaysQuoteIdentifiers) {
-//            return true
-//        }
+        if (database.alwaysQuoteIdentifiers) {
+            return true
+        }
         if (!identifier.isIdentifier) {
             return true
         }
-//        if (identifier.toUpperCase() in database.keywords) {
-//            return true
-//        }
-//        if (identifier.isMixedCase
-//            && !database.supportsMixedCaseIdentifiers && database.supportsMixedCaseQuotedIdentifiers) {
-//            return true
-//        }
+        if (identifier.uppercase() in database.keywords) {
+            return true
+        }
+        if (identifier.isMixedCase
+            && !database.dialect.supportsMixedCaseIdentifiers
+            && database.dialect.supportsMixedCaseQuotedIdentifiers
+        ) {
+            return true
+        }
         return false
     }
 
     protected val String.quoted: String get() {
-        return this
-//        if (shouldQuote(this)) {
-//            if (database.supportsMixedCaseQuotedIdentifiers) {
-//                return "${database.identifierQuoteString}${this}${database.identifierQuoteString}"
-//            } else {
-//                if (database.storesUpperCaseQuotedIdentifiers) {
-//                    return "${database.identifierQuoteString}${this.toUpperCase()}${database.identifierQuoteString}"
-//                }
-//                if (database.storesLowerCaseQuotedIdentifiers) {
-//                    return "${database.identifierQuoteString}${this.toLowerCase()}${database.identifierQuoteString}"
-//                }
-//                if (database.storesMixedCaseQuotedIdentifiers) {
-//                    return "${database.identifierQuoteString}${this}${database.identifierQuoteString}"
-//                }
-//                // Should never happen, but it's still needed as some database drivers are not implemented correctly.
-//                return "${database.identifierQuoteString}${this}${database.identifierQuoteString}"
-//            }
-//        } else {
-//            if (database.supportsMixedCaseIdentifiers) {
-//                return this
-//            } else {
-//                if (database.storesUpperCaseIdentifiers) {
-//                    return this.toUpperCase()
-//                }
-//                if (database.storesLowerCaseIdentifiers) {
-//                    return this.toLowerCase()
-//                }
-//                if (database.storesMixedCaseIdentifiers) {
-//                    return this
-//                }
-//                // Should never happen, but it's still needed as some database drivers are not implemented correctly.
-//                return this
-//            }
-//        }
+        val dialect = database.dialect
+        if (shouldQuote(this)) {
+            if (dialect.supportsMixedCaseQuotedIdentifiers) {
+                return "${dialect.identifierQuoteString}${this}${dialect.identifierQuoteString}"
+            } else {
+                if (dialect.storesUpperCaseQuotedIdentifiers) {
+                    return "${dialect.identifierQuoteString}${this.uppercase()}${dialect.identifierQuoteString}"
+                }
+                if (dialect.storesLowerCaseQuotedIdentifiers) {
+                    return "${dialect.identifierQuoteString}${this.lowercase()}${dialect.identifierQuoteString}"
+                }
+                if (dialect.storesMixedCaseQuotedIdentifiers) {
+                    return "${dialect.identifierQuoteString}${this}${dialect.identifierQuoteString}"
+                }
+                // Should never happen, but it's still needed as some dialect drivers are not implemented correctly.
+                return "${dialect.identifierQuoteString}${this}${dialect.identifierQuoteString}"
+            }
+        } else {
+            if (dialect.supportsMixedCaseIdentifiers) {
+                return this
+            } else {
+                if (dialect.storesUpperCaseIdentifiers) {
+                    return this.uppercase()
+                }
+                if (dialect.storesLowerCaseIdentifiers) {
+                    return this.lowercase()
+                }
+                if (dialect.storesMixedCaseIdentifiers) {
+                    return this
+                }
+                // Should never happen, but it's still needed as some dialect drivers are not implemented correctly.
+                return this
+            }
+        }
     }
 
     protected val String.isMixedCase: Boolean get() {
@@ -171,19 +171,19 @@ public abstract class SqlFormatter(
         if (this == '_') {
             return true
         }
-//        if (this in database.extraNameCharacters) {
-//            return true
-//        }
+        if (this in database.dialect.extraNameCharacters) {
+            return true
+        }
         return false
     }
 
     protected val SqlExpression.removeBrackets: Boolean get() {
         return isLeafNode
-            || this is ColumnExpression<*>
-            || this is FunctionExpression<*>
-            || this is AggregateExpression<*>
-            || this is ExistsExpression
-            || this is ColumnDeclaringExpression<*>
+                || this is ColumnExpression<*>
+                || this is FunctionExpression<*>
+                || this is AggregateExpression<*>
+                || this is ExistsExpression
+                || this is ColumnDeclaringExpression<*>
     }
 
     override fun visit(expr: SqlExpression): SqlExpression {
@@ -391,6 +391,7 @@ public abstract class SqlFormatter(
         if (expr.offset != null || expr.limit != null) {
             writePagination(expr)
         }
+        @Suppress("DEPRECATION")
         if (expr.forUpdate) {
             writeKeyword("for update ")
         }

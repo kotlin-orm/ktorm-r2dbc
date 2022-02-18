@@ -16,8 +16,9 @@
 
 package org.ktorm.r2dbc.schema
 
-import io.r2dbc.spi.Row
+import org.ktorm.r2dbc.dsl.QueryRow
 import org.ktorm.r2dbc.expression.TableExpression
+import org.ktorm.schema.*
 import java.util.*
 import kotlin.reflect.KClass
 import kotlin.reflect.jvm.jvmErasure
@@ -193,14 +194,41 @@ public abstract class BaseTable<E : Any>(
      * @return the new [Column] instance with its type changed to [R].
      * @see SqlType.transform
      */
+    public inline fun <C : Any, reified R : Any> Column<C>.transform(
+        noinline fromUnderlyingValue: (C) -> R,
+        noinline toUnderlyingValue: (R) -> C,
+    ): Column<R> {
+        return transform(fromUnderlyingValue, toUnderlyingValue, R::class.java)
+    }
+
+    /**
+     * Transform the registered column's [SqlType] to another. The transformed [SqlType] has the same `typeCode` and
+     * `typeName` as the underlying one, and performs the specific transformations on column values.
+     *
+     * This enables a user-friendly syntax to extend more data types. For example, the following code defines a column
+     * of type `Column<UserRole>`, based on the existing column definition function [int]:
+     *
+     * ```kotlin
+     * val role = int("role").transform({ UserRole.fromCode(it) }, { it.code })
+     * ```
+     *
+     * Note: Since [Column] is immutable, this function will create a new [Column] instance and replace the origin
+     * registered one.
+     *
+     * @param fromUnderlyingValue a function that transforms a value of underlying type to the user's type.
+     * @param toUnderlyingValue a function that transforms a value of user's type the to the underlying type.
+     * @return the new [Column] instance with its type changed to [R].
+     * @see SqlType.transform
+     */
     public fun <C : Any, R : Any> Column<C>.transform(
         fromUnderlyingValue: (C) -> R,
-        toUnderlyingValue: (R) -> C
+        toUnderlyingValue: (R) -> C,
+        javaType: Class<R>
     ): Column<R> {
         checkRegistered()
         checkTransformable()
 
-        val result = Column(table, name, sqlType = sqlType.transform(fromUnderlyingValue, toUnderlyingValue))
+        val result = Column(table, name, sqlType = sqlType.transform(fromUnderlyingValue, toUnderlyingValue, javaType))
         _columns[name] = result
         return result
     }
@@ -231,17 +259,19 @@ public abstract class BaseTable<E : Any>(
     private fun <C : Any> Column<C>.checkConflictBinding(binding: ColumnBinding) {
         for (column in _columns.values) {
             val hasConflict = when (binding) {
-                is NestedBinding -> column.allBindings
-                    .filterIsInstance<NestedBinding>()
-                    .filter { it.properties == binding.properties }
-                    .any()
-                is ReferenceBinding -> column.allBindings
-                    .filterIsInstance<ReferenceBinding>()
-                    .filter { it.referenceTable.tableName == binding.referenceTable.tableName }
-                    .filter { it.referenceTable.catalog == binding.referenceTable.catalog }
-                    .filter { it.referenceTable.schema == binding.referenceTable.schema }
-                    .filter { it.onProperty == binding.onProperty }
-                    .any()
+                is NestedBinding ->
+                    column.allBindings
+                        .filterIsInstance<NestedBinding>()
+                        .filter { it.properties == binding.properties }
+                        .any()
+                is ReferenceBinding ->
+                    column.allBindings
+                        .filterIsInstance<ReferenceBinding>()
+                        .filter { it.referenceTable.tableName == binding.referenceTable.tableName }
+                        .filter { it.referenceTable.catalog == binding.referenceTable.catalog }
+                        .filter { it.referenceTable.schema == binding.referenceTable.schema }
+                        .filter { it.onProperty == binding.onProperty }
+                        .any()
             }
 
             if (hasConflict) {
@@ -345,13 +375,13 @@ public abstract class BaseTable<E : Any>(
      * it is equivalent to `c.bindTo { it.department.id }` in this case, that avoids unnecessary object creations
      * and some exceptions raised by conflict column names.
      */
-    public fun createEntity(row: Row, withReferences: Boolean = true): E {
+    public fun createEntity(row: QueryRow, withReferences: Boolean = true): E {
         val entity = doCreateEntity(row, withReferences)
 
-//        val logger = row.query.database.logger
-//        if (logger.isTraceEnabled()) {
-//            logger.trace("Entity: $entity")
-//        }
+        val logger = row.query.database.logger
+        if (logger.isTraceEnabled()) {
+            logger.trace("Entity: $entity")
+        }
 
         return entity
     }
@@ -362,7 +392,7 @@ public abstract class BaseTable<E : Any>(
      * This function is called by [createEntity]. Subclasses should override it and implement the actual logic of
      * retrieving an entity object from the query results.
      */
-    protected abstract fun doCreateEntity(row: Row, withReferences: Boolean): E
+    protected abstract fun doCreateEntity(row: QueryRow, withReferences: Boolean): E
 
     /**
      * Convert this table to a [TableExpression].

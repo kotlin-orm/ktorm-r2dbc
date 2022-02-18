@@ -24,6 +24,100 @@ public interface SqlDialect {
             }
         }
     }
+
+    /**
+     * What is the string used to quote SQL identifiers? This returns a space if identifier quoting
+     * isn't supported. A JDBC Compliant driver will always use a double quote character.
+     */
+    public val identifierQuoteString: String
+
+    /**
+     * All the "extra" characters that can be used in unquoted identifier names (those beyond a-z, A-Z, 0-9 and _).
+     */
+    public val extraNameCharacters: String
+
+    /**
+     * Whether this database treats mixed case unquoted SQL identifiers as case sensitive and as a result
+     * stores them in mixed case.
+     *
+     * @since 3.1.0
+     */
+    public val supportsMixedCaseIdentifiers: Boolean
+
+    /**
+     * Whether this database treats mixed case unquoted SQL identifiers as case insensitive and
+     * stores them in mixed case.
+     *
+     * @since 3.1.0
+     */
+    public val storesMixedCaseIdentifiers: Boolean
+
+    /**
+     * Whether this database treats mixed case unquoted SQL identifiers as case insensitive and
+     * stores them in upper case.
+     *
+     * @since 3.1.0
+     */
+    public val storesUpperCaseIdentifiers: Boolean
+
+    /**
+     * Whether this database treats mixed case unquoted SQL identifiers as case insensitive and
+     * stores them in lower case.
+     *
+     * @since 3.1.0
+     */
+    public val storesLowerCaseIdentifiers: Boolean
+
+    /**
+     * Whether this database treats mixed case quoted SQL identifiers as case sensitive and as a result
+     * stores them in mixed case.
+     *
+     * @since 3.1.0
+     */
+    public val supportsMixedCaseQuotedIdentifiers: Boolean
+
+    /**
+     * Whether this database treats mixed case quoted SQL identifiers as case insensitive and
+     * stores them in mixed case.
+     *
+     * @since 3.1.0
+     */
+    public val storesMixedCaseQuotedIdentifiers: Boolean
+
+    /**
+     * Whether this database treats mixed case quoted SQL identifiers as case insensitive and
+     * stores them in upper case.
+     *
+     * @since 3.1.0
+     */
+    public val storesUpperCaseQuotedIdentifiers: Boolean
+
+    /**
+     * Whether this database treats mixed case quoted SQL identifiers as case insensitive and
+     * stores them in lower case.
+     *
+     * @since 3.1.0
+     */
+    public val storesLowerCaseQuotedIdentifiers: Boolean
+
+    /**
+     * Retrieves a comma-separated list of all of this database's SQL keywords
+     * that are NOT also SQL:2003 keywords.
+     *
+     * @return the list of this database's keywords that are not also
+     *         SQL:2003 keywords
+     * @since 3.1.0
+     */
+    public val sqlKeywords: Set<String>
+
+    /**
+     * The maximum number of characters this database allows for a column name. Zero means that there is no limit
+     * or the limit is not known.
+     *
+     * @since 3.1.0
+     */
+    public val maxColumnNameLength: Int
+
 }
 
 /**
@@ -48,9 +142,24 @@ public class DialectFeatureNotSupportedException(
 public fun detectDialectImplementation(): SqlDialect {
     val dialects = ServiceLoader.load(SqlDialect::class.java).toList()
     return when (dialects.size) {
-        0 -> object : SqlDialect { }
+        0 -> object : SqlDialect {
+            override val identifierQuoteString: String = ""
+            override val extraNameCharacters: String = ""
+            override val supportsMixedCaseIdentifiers: Boolean = false
+            override val storesMixedCaseIdentifiers: Boolean = false
+            override val storesUpperCaseIdentifiers: Boolean = false
+            override val storesLowerCaseIdentifiers: Boolean = false
+            override val supportsMixedCaseQuotedIdentifiers: Boolean = false
+            override val storesMixedCaseQuotedIdentifiers: Boolean = false
+            override val storesUpperCaseQuotedIdentifiers: Boolean = false
+            override val storesLowerCaseQuotedIdentifiers: Boolean = false
+            override val sqlKeywords: Set<String> = emptySet()
+            override val maxColumnNameLength: Int = 0
+        }
         1 -> dialects[0]
-        else -> error("More than one dialect implementations found in the classpath, " +
-            "please choose one manually, they are: $dialects")
+        else -> error(
+            "More than one dialect implementations found in the classpath, " +
+                    "please choose one manually, they are: $dialects"
+        )
     }
 }

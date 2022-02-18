@@ -7,24 +7,31 @@ import kotlin.reflect.KClass
 
 public interface SqlType<T : Any> {
 
+    public val javaType: Class<T>
+
     public fun bindParameter(statement: Statement, index: Int, value: T?)
 
     public fun bindParameter(statement: Statement, name: String, value: T?)
-    
+
     public fun getResult(row: Row, metadata: RowMetadata, index: Int): T?
-    
+
     public fun getResult(row: Row, metadata: RowMetadata, name: String): T?
 
-    public fun <R : Any> transform(fromUnderlyingValue: (T) -> R, toUnderlyingValue: (R) -> T): SqlType<R> {
-        return TransformedSqlType(this, fromUnderlyingValue, toUnderlyingValue)
-    }
 }
 
-public class SimpleSqlType<T : Any>(public val kotlinType: KClass<T>) : SqlType<T> {
+public fun <T : Any, R : Any> SqlType<T>.transform(
+    fromUnderlyingValue: (T) -> R,
+    toUnderlyingValue: (R) -> T,
+    javaType: Class<R>
+): SqlType<R> {
+    return TransformedSqlType(this, fromUnderlyingValue, toUnderlyingValue, javaType)
+}
+
+public open class SimpleSqlType<T : Any>(public val kotlinType: KClass<T>) : SqlType<T> {
 
     override fun bindParameter(statement: Statement, index: Int, value: T?) {
         if (value == null) {
-            statement.bindNull(index, kotlinType.java)
+            statement.bindNull(index, kotlinType.javaObjectType)
         } else {
             statement.bind(index, value)
         }
@@ -32,29 +39,30 @@ public class SimpleSqlType<T : Any>(public val kotlinType: KClass<T>) : SqlType<
 
     override fun bindParameter(statement: Statement, name: String, value: T?) {
         if (value == null) {
-            statement.bindNull(name, kotlinType.java)
+            statement.bindNull(name, kotlinType.javaObjectType)
         } else {
             statement.bind(name, value)
         }
     }
 
     override fun getResult(row: Row, metadata: RowMetadata, index: Int): T? {
-        return row.get(index, kotlinType.java)
+        return row.get(index, kotlinType.javaObjectType)
     }
 
     override fun getResult(row: Row, metadata: RowMetadata, name: String): T? {
-        return row.get(name, kotlinType.java)
+        return row.get(name, kotlinType.javaObjectType)
     }
 
-//    public companion object {
-//        public inline operator fun <reified T : Any> invoke(): SimpleSqlType<T> = SimpleSqlType(T::class)
-//    }
+    override val javaType: Class<T>
+        get() = kotlinType.javaObjectType
+
 }
 
 public class TransformedSqlType<T : Any, R : Any>(
     public val underlyingType: SqlType<T>,
     public val fromUnderlyingValue: (T) -> R,
-    public val toUnderlyingValue: (R) -> T
+    public val toUnderlyingValue: (R) -> T,
+    public override val javaType: Class<R>
 ) : SqlType<R> {
 
     override fun bindParameter(statement: Statement, index: Int, value: R?) {

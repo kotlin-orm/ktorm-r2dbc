@@ -73,6 +73,7 @@ public interface ColumnDeclaring<T : Any> {
      * Wrap the given [argument] as an [ArgumentExpression] using the [sqlType].
      */
     public fun wrapArgument(argument: T?): ArgumentExpression<T>
+
 }
 
 /**

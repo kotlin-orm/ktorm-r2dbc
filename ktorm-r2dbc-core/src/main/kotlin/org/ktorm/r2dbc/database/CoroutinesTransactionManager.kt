@@ -3,8 +3,8 @@ package org.ktorm.r2dbc.database
 import io.r2dbc.spi.Connection
 import io.r2dbc.spi.ConnectionFactory
 import io.r2dbc.spi.IsolationLevel
+import kotlinx.coroutines.reactive.awaitFirstOrNull
 import kotlinx.coroutines.reactive.awaitSingle
-import kotlinx.coroutines.reactive.awaitSingleOrNull
 
 /**
  * Created by vince on Jan 30, 2021.
@@ -41,13 +41,13 @@ public class CoroutinesTransactionManager(
         suspend fun begin() {
             try {
                 if (desiredIsolation != null && desiredIsolation != originIsolation) {
-                    connection.setTransactionIsolationLevel(desiredIsolation).awaitSingleOrNull()
+                    connection.setTransactionIsolationLevel(desiredIsolation).awaitFirstOrNull()
                 }
                 if (originAutoCommit) {
-                    connection.setAutoCommit(false).awaitSingleOrNull()
+                    connection.setAutoCommit(false).awaitFirstOrNull()
                 }
 
-                connection.beginTransaction().awaitSingleOrNull()
+                connection.beginTransaction().awaitFirstOrNull()
             } catch (e: Throwable) {
                 close()
                 throw e
@@ -55,25 +55,25 @@ public class CoroutinesTransactionManager(
         }
 
         override suspend fun commit() {
-            connection.commitTransaction().awaitSingleOrNull()
+            connection.commitTransaction().awaitFirstOrNull()
         }
 
         override suspend fun rollback() {
-            connection.rollbackTransaction().awaitSingleOrNull()
+            connection.rollbackTransaction().awaitFirstOrNull()
         }
 
         override suspend fun close() {
             try {
                 if (desiredIsolation != null && desiredIsolation != originIsolation) {
-                    connection.setTransactionIsolationLevel(originIsolation).awaitSingleOrNull()
+                    connection.setTransactionIsolationLevel(originIsolation).awaitFirstOrNull()
                 }
                 if (originAutoCommit) {
-                    connection.setAutoCommit(true).awaitSingleOrNull()
+                    connection.setAutoCommit(true).awaitFirstOrNull()
                 }
             } catch (_: Throwable) {
             } finally {
                 try {
-                    connection.close().awaitSingleOrNull()
+                    connection.close().awaitFirstOrNull()
                 } catch (_: Throwable) {
                 } finally {
                     currentTransaction.remove()

@@ -18,7 +18,10 @@ package org.ktorm.r2dbc.dsl
 
 import org.ktorm.r2dbc.expression.AggregateExpression
 import org.ktorm.r2dbc.expression.AggregateType
-import org.ktorm.r2dbc.schema.*
+import org.ktorm.r2dbc.schema.ColumnDeclaring
+import org.ktorm.r2dbc.schema.IntSqlType
+import org.ktorm.r2dbc.schema.LongSqlType
+import org.ktorm.r2dbc.schema.SimpleSqlType
 
 /**
  * The min function, translated to `min(column)` in SQL.
@@ -79,13 +82,13 @@ public fun <C : Number> sumDistinct(column: ColumnDeclaring<C>): AggregateExpres
 /**
  * The count function, translated to `count(column)` in SQL.
  */
-public fun count(column: ColumnDeclaring<*>? = null): AggregateExpression<Int> {
-    return AggregateExpression(AggregateType.COUNT, column?.asExpression(), false, SimpleSqlType(Int::class))
+public fun count(column: ColumnDeclaring<*>? = null): AggregateExpression<Long> {
+    return AggregateExpression(AggregateType.COUNT, column?.asExpression(), false, LongSqlType)
 }
 
 /**
  * The count function with distinct, translated to `count(distinct column)` in SQL.
  */
 public fun countDistinct(column: ColumnDeclaring<*>? = null): AggregateExpression<Int> {
-    return AggregateExpression(AggregateType.COUNT, column?.asExpression(), true, SimpleSqlType(Int::class))
+    return AggregateExpression(AggregateType.COUNT, column?.asExpression(), true, IntSqlType)
 }
