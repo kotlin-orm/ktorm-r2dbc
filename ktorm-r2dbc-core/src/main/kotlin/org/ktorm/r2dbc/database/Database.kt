@@ -321,7 +321,7 @@ public class Database(
 
         if (logger.isDebugEnabled()) {
             logger.debug("SQL: $sql")
-            logger.debug("Parameters: " + args.map { "${it.value}(${it.sqlType.javaType.simpleName})" })
+            logger.debug("Parameters: " + args.map { it.value })
         }
 
         useConnection {

@@ -129,10 +129,10 @@ public class EntitySequence<E : Any, T : BaseTable<E>>(
      * elements when being iterated.
      */
     public suspend fun asKotlinSequence(): Sequence<E> {
-        return flow().toList().asSequence()
+        return asFlow().toList().asSequence()
     }
 
-    public suspend fun flow():Flow<E> {
+    public suspend fun asFlow():Flow<E> {
         return getRowSet().map(entityExtractor)
     }
 
@@ -158,7 +158,7 @@ public fun <E : Any, T : BaseTable<E>> Database.sequenceOf(
  * The operation is terminal.
  */
 public suspend fun <E : Any, C : MutableCollection<in E>> EntitySequence<E, *>.toCollection(destination: C): C {
-    flow().collect { destination += it }
+    asFlow().collect { destination += it }
     return destination
 }
 
@@ -319,7 +319,7 @@ public suspend inline fun <E : Any, R, C : MutableCollection<in R>> EntitySequen
     destination: C,
     crossinline transform: (E) -> R
 ): C {
-    flow().collect { destination += transform(it) }
+    asFlow().collect { destination += transform(it) }
     return destination
 }
 
@@ -347,7 +347,7 @@ public suspend inline fun <E : Any, R : Any, C : MutableCollection<in R>> Entity
     destination: C,
     crossinline transform: (E) -> R?
 ): C {
-    flow().collect { element -> transform(element)?.let { destination += it } }
+    asFlow().collect { element -> transform(element)?.let { destination += it } }
     return destination
 }
 
@@ -411,7 +411,7 @@ public suspend inline fun <E : Any, R : Any, C : MutableCollection<in R>> Entity
     destination: C,
     crossinline transform: (index: Int, E) -> R?
 ): C {
-    flow().collectIndexed { index, element -> transform(index, element)?.let { destination += it } }
+    asFlow().collectIndexed { index, element -> transform(index, element)?.let { destination += it } }
     return destination
 }
 
@@ -424,7 +424,7 @@ public suspend inline fun <E : Any, R : Any, C : MutableCollection<in R>> Entity
  * @since 3.0.0
  */
 public suspend inline fun <E : Any, R> EntitySequence<E, *>.flatMap(transform: (E) -> Iterable<R>): List<R> {
-    return flow().toList().flatMapTo(ArrayList(), transform)
+    return asFlow().toList().flatMapTo(ArrayList(), transform)
 }
 
 /**
@@ -439,7 +439,7 @@ public suspend inline fun <E : Any, R, C : MutableCollection<in R>> EntitySequen
     destination: C,
     crossinline transform: (E) -> Iterable<R>
 ): C {
-    flow().collect { destination += transform(it) }
+    asFlow().collect { destination += transform(it) }
     return destination
 }
 
@@ -880,7 +880,7 @@ public suspend inline fun <E : Any, K, V> EntitySequence<E, *>.associate(crossin
  * The operation is terminal.
  */
 public suspend inline fun <E : Any, K> EntitySequence<E, *>.associateBy(keySelector: (E) -> K): Map<K, E> {
-    return flow().toList().associateByTo(LinkedHashMap(), keySelector)
+    return asFlow().toList().associateByTo(LinkedHashMap(), keySelector)
 }
 
 /**
@@ -897,7 +897,7 @@ public suspend inline fun <E : Any, K, V> EntitySequence<E, *>.associateBy(
     keySelector: (E) -> K,
     valueTransform: (E) -> V
 ): Map<K, V> {
-    return flow().toList().associateByTo(LinkedHashMap(), keySelector, valueTransform)
+    return asFlow().toList().associateByTo(LinkedHashMap(), keySelector, valueTransform)
 }
 
 /**
@@ -911,7 +911,7 @@ public suspend inline fun <E : Any, K, V> EntitySequence<E, *>.associateBy(
  * The operation is terminal.
  */
 public suspend inline fun <K : Entity<K>, V> EntitySequence<K, *>.associateWith(valueSelector: (K) -> V): Map<K, V> {
-    return flow().toList().associateWithTo(LinkedHashMap(), valueSelector)
+    return asFlow().toList().associateWithTo(LinkedHashMap(), valueSelector)
 }
 
 /**
@@ -926,7 +926,7 @@ public suspend inline fun <E : Any, K, V, M : MutableMap<in K, in V>> EntitySequ
     destination: M,
     crossinline transform: (E) -> Pair<K, V>
 ): M {
-    flow().collect { destination += transform(it) }
+    asFlow().collect { destination += transform(it) }
     return destination
 }
 
@@ -942,7 +942,7 @@ public suspend inline fun <E : Any, K, M : MutableMap<in K, in E>> EntitySequenc
     destination: M,
     crossinline keySelector: (E) -> K
 ): M {
-    flow().collect { destination.put(keySelector(it), it) }
+    asFlow().collect { destination.put(keySelector(it), it) }
     return destination
 }
 
@@ -959,7 +959,7 @@ public suspend inline fun <E : Any, K, V, M : MutableMap<in K, in V>> EntitySequ
     crossinline keySelector: (E) -> K,
     crossinline valueTransform: (E) -> V
 ): M {
-    flow().collect { destination.put(keySelector(it), valueTransform(it)) }
+    asFlow().collect { destination.put(keySelector(it), valueTransform(it)) }
     return destination
 }
 
@@ -975,7 +975,7 @@ public suspend inline fun <K : Entity<K>, V, M : MutableMap<in K, in V>> EntityS
     destination: M,
     crossinline valueSelector: (K) -> V
 ): M {
-    flow().collect { destination.put(it, valueSelector(it)) }
+    asFlow().collect { destination.put(it, valueSelector(it)) }
     return destination
 }
 
@@ -992,7 +992,7 @@ public suspend inline fun <K : Entity<K>, V, M : MutableMap<in K, in V>> EntityS
 public suspend fun <E : Any, T : BaseTable<E>> EntitySequence<E, T>.elementAtOrNull(index: Int): E? {
     try {
         @Suppress("UnconditionalJumpStatementInLoop")
-        return this.drop(index).take(1).flow().firstOrNull()
+        return this.drop(index).take(1).asFlow().firstOrNull()
     } catch (e: DialectFeatureNotSupportedException) {
         if (database.logger.isTraceEnabled()) {
             database.logger.trace("Pagination is not supported, retrieving all records instead: ", e)
@@ -1098,7 +1098,7 @@ public suspend inline fun <E : Any, T : BaseTable<E>> EntitySequence<E, T>.first
  * The operation is terminal.
  */
 public suspend fun <E : Any> EntitySequence<E, *>.lastOrNull(): E? {
-    return flow().lastOrNull()
+    return asFlow().lastOrNull()
 }
 
 /**
@@ -1165,7 +1165,7 @@ public suspend inline fun <E : Any, T : BaseTable<E>> EntitySequence<E, T>.findL
  * The operation is terminal.
  */
 public suspend fun <E : Any, T : BaseTable<E>> EntitySequence<E, T>.singleOrNull(): E? {
-    return flow().firstOrNull()
+    return asFlow().firstOrNull()
 }
 
 /**
@@ -1186,7 +1186,7 @@ public suspend inline fun <E : Any, T : BaseTable<E>> EntitySequence<E, T>.singl
  * The operation is terminal.
  */
 public suspend fun <E : Any, T : BaseTable<E>> EntitySequence<E, T>.single(): E {
-    return flow().first()
+    return asFlow().first()
 }
 
 /**
@@ -1209,7 +1209,7 @@ public suspend inline fun <E : Any, T : BaseTable<E>> EntitySequence<E, T>.singl
  */
 public suspend inline fun <E : Any, R> EntitySequence<E, *>.fold(initial: R, crossinline operation: (acc: R, E) -> R): R {
     var accumulator = initial
-    flow().collect { accumulator = operation(accumulator, it) }
+    asFlow().collect { accumulator = operation(accumulator, it) }
     return accumulator
 }
 
@@ -1228,7 +1228,7 @@ public suspend inline fun <E : Any, R> EntitySequence<E, *>.foldIndexed(
 ): R {
     var index = 0
     var accumulator = initial
-    flow().collect { accumulator = operation(index++, accumulator, it) }
+    asFlow().collect { accumulator = operation(index++, accumulator, it) }
     return accumulator
 }
 
@@ -1279,7 +1279,7 @@ public suspend inline fun <E : Any> EntitySequence<E, *>.reduceIndexed(crossinli
  */
 public suspend inline fun <E : Any> EntitySequence<E, *>.reduceOrNull(crossinline operation: (acc: E, E) -> E): E? {
     var accumulator: E? = null
-    flow().collect {
+    asFlow().collect {
         if (accumulator == null) {
             accumulator = it
         } else {
@@ -1313,7 +1313,7 @@ public suspend inline fun <E : Any> EntitySequence<E, *>.reduceIndexedOrNull(cro
  * The operation is terminal.
  */
 public suspend inline fun <E : Any> EntitySequence<E, *>.forEach(crossinline action: (E) -> Unit) {
-    flow().collect { action(it) }
+    asFlow().collect { action(it) }
 }
 
 /**
@@ -1325,7 +1325,7 @@ public suspend inline fun <E : Any> EntitySequence<E, *>.forEach(crossinline act
  */
 public suspend inline fun <E : Any> EntitySequence<E, *>.forEachIndexed(crossinline action: (index: Int, E) -> Unit) {
     var index = 0
-    flow().collect { action(index++, it) }
+    asFlow().collect { action(index++, it) }
 }
 
 /**
@@ -1335,7 +1335,7 @@ public suspend inline fun <E : Any> EntitySequence<E, *>.forEachIndexed(crossinl
  * @since 3.0.0
  */
 public suspend fun <E : Any> EntitySequence<E, *>.withIndex(): Sequence<IndexedValue<E>> {
-    val iterator = flow().toList().iterator()
+    val iterator = asFlow().toList().iterator()
     return Sequence { IndexingIterator(iterator) }
 }
 
@@ -1377,7 +1377,7 @@ public suspend inline fun <E : Any, K, M : MutableMap<in K, MutableList<E>>> Ent
     destination: M,
     crossinline keySelector: (E) -> K
 ): M {
-    flow().collect {
+    asFlow().collect {
         val key = keySelector(it)
         val list = destination.getOrPut(key) { ArrayList() }
         list += it
@@ -1397,7 +1397,7 @@ public suspend inline fun <E : Any, K, V, M : MutableMap<in K, MutableList<V>>> 
     crossinline keySelector: (E) -> K,
     crossinline valueTransform: (E) -> V
 ): M {
-    flow().collect {
+    asFlow().collect {
         val key = keySelector(it)
         val list = destination.getOrPut(key) { ArrayList() }
         list += valueTransform(it)
@@ -1413,13 +1413,11 @@ public suspend inline fun <E : Any, K, V, M : MutableMap<in K, MutableList<V>>> 
  *
  * The operation is intermediate.
  */
-/*
-TODO grouping
 public suspend fun <E : Any, T : BaseTable<E>, K : Any> EntitySequence<E, T>.groupingBy(
     keySelector: (T) -> ColumnDeclaring<K>
 ): EntityGrouping<E, T, K> {
     return EntityGrouping(this, keySelector)
-}*/
+}
 
 /**
  * Append the string from all the elements separated using [separator] and using the given [prefix] and [postfix].
@@ -1440,7 +1438,7 @@ public suspend fun <E : Any, A : Appendable> EntitySequence<E, *>.joinTo(
 ): A {
     buffer.append(prefix)
     var count = 0
-    flow().collect {
+    asFlow().collect {
         if (++count > 1) buffer.append(separator)
         if (limit < 0 || count <= limit) {
             if (transform != null) buffer.append(transform(it)) else buffer.append(it.toString())

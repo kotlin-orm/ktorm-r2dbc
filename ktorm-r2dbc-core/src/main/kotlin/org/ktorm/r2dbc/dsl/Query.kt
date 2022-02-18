@@ -83,6 +83,10 @@ public class Query(public val database: Database, public val expression: QueryEx
         return database.executeQuery(expression).map { QueryRow(this@Query, it) }
     }
 
+    public suspend fun asFlow(): Flow<QueryRow> {
+        return this.doQuery()
+    }
+
     /**
      * The total record count of this query ignoring the pagination params.
      *
