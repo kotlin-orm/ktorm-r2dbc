@@ -154,8 +154,8 @@ class EntitySequenceTest : BaseTest() {
 
         println(counts)
         assert(counts.size == 2)
-        assert(counts[0] == 2L)
         assert(counts[1] == 2L)
+        assert(counts[2] == 2L)
     }
 
     @Test

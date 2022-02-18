@@ -43,7 +43,15 @@ public fun BaseTable<*>.int(name: String): Column<Int> {
 /**
  * [SqlType] implementation represents `int` SQL type.
  */
-public object IntSqlType : SimpleSqlType<Int>(Int::class)
+public object IntSqlType : ConvertibleSqlType<Int>(Int::class) {
+    override fun convert(value: Any): Int {
+        return when (value) {
+            is Number -> value.toInt()
+            is String -> value.toInt()
+            else -> throw IllegalStateException("Converting type is not supported from value:$value")
+        }
+    }
+}
 
 /**
  * Define a column typed of [ShortSqlType].
@@ -71,7 +79,16 @@ public fun BaseTable<*>.long(name: String): Column<Long> {
 /**
  * [SqlType] implementation represents `long` SQL type.
  */
-public object LongSqlType : SimpleSqlType<Long>(Long::class)
+public object LongSqlType : ConvertibleSqlType<Long>(Long::class) {
+    override fun convert(value: Any): Long {
+        return when (value) {
+            is Number -> value.toLong()
+            is String -> value.toLong()
+            else -> throw IllegalStateException("Converting type is not supported from value:$value")
+        }
+    }
+}
+
 /**
  * Define a column typed of [FloatSqlType].
  */
@@ -82,7 +99,15 @@ public fun BaseTable<*>.float(name: String): Column<Float> {
 /**
  * [SqlType] implementation represents `float` SQL type.
  */
-public object FloatSqlType : SimpleSqlType<Float>(Float::class)
+public object FloatSqlType : ConvertibleSqlType<Float>(Float::class) {
+    override fun convert(value: Any): Float {
+        return when (value) {
+            is Number -> value.toFloat()
+            is String -> value.toFloat()
+            else -> throw IllegalStateException("Converting type is not supported from value:$value")
+        }
+    }
+}
 
 /**
  * Define a column typed of [DoubleSqlType].
@@ -94,7 +119,15 @@ public fun BaseTable<*>.double(name: String): Column<Double> {
 /**
  * [SqlType] implementation represents `double` SQL type.
  */
-public object DoubleSqlType : SimpleSqlType<Double>(Double::class)
+public object DoubleSqlType : ConvertibleSqlType<Double>(Double::class) {
+    override fun convert(value: Any): Double {
+        return when (value) {
+            is Number -> value.toDouble()
+            is String -> value.toDouble()
+            else -> throw IllegalStateException("Converting type is not supported from value:$value")
+        }
+    }
+}
 
 /**
  * Define a column typed of [DecimalSqlType].
@@ -106,7 +139,20 @@ public fun BaseTable<*>.decimal(name: String): Column<BigDecimal> {
 /**
  * [SqlType] implementation represents `decimal` SQL type.
  */
-public object DecimalSqlType : SimpleSqlType<BigDecimal>(BigDecimal::class)
+public object DecimalSqlType : ConvertibleSqlType<BigDecimal>(BigDecimal::class) {
+    override fun convert(value: Any): BigDecimal {
+        return when (value) {
+            is BigDecimal -> value
+            is Int -> BigDecimal(value)
+            is Long -> BigDecimal(value)
+            is Double -> BigDecimal(value)
+            is Float -> BigDecimal(value.toDouble())
+            is String -> BigDecimal(value)
+            else -> throw IllegalStateException("Converting type is not supported from value:$value")
+        }
+    }
+
+}
 
 /**
  * Define a column typed of [VarcharSqlType].
@@ -143,6 +189,7 @@ public fun BaseTable<*>.blob(name: String): Column<ByteArray> {
  * [SqlType] implementation represents `blob` SQL type.
  */
 public object BlobSqlType : SimpleSqlType<ByteArray>(ByteArray::class)
+
 /**
  * Define a column typed of [BytesSqlType].
  */
@@ -154,6 +201,7 @@ public fun BaseTable<*>.bytes(name: String): Column<ByteArray> {
  * [SqlType] implementation represents `bytes` SQL type.
  */
 public object BytesSqlType : SimpleSqlType<ByteArray>(ByteArray::class)
+
 /**
  * Define a column typed of [TimestampSqlType].
  */
@@ -177,6 +225,7 @@ public fun BaseTable<*>.timestamp(name: String): Column<Instant> {
  * [SqlType] implementation represents `timestamp` SQL type.
  */
 public object InstantSqlType : SimpleSqlType<Instant>(Instant::class)
+
 /**
  * Define a column typed of [LocalDateTimeSqlType].
  */
@@ -212,6 +261,7 @@ public fun BaseTable<*>.time(name: String): Column<LocalTime> {
  * [SqlType] implementation represents `time` SQL type.
  */
 public object LocalTimeSqlType : SimpleSqlType<LocalTime>(LocalTime::class)
+
 /**
  * Define a column typed of [MonthDaySqlType], instances of [MonthDay] are saved as strings in format `MM-dd`.
  */

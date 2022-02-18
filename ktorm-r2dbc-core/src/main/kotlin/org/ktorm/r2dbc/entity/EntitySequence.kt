@@ -1413,7 +1413,7 @@ public suspend inline fun <E : Any, K, V, M : MutableMap<in K, MutableList<V>>> 
  *
  * The operation is intermediate.
  */
-public suspend fun <E : Any, T : BaseTable<E>, K : Any> EntitySequence<E, T>.groupingBy(
+public fun <E : Any, T : BaseTable<E>, K : Any> EntitySequence<E, T>.groupingBy(
     keySelector: (T) -> ColumnDeclaring<K>
 ): EntityGrouping<E, T, K> {
     return EntityGrouping(this, keySelector)

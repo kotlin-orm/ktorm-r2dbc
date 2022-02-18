@@ -1,7 +1,6 @@
 package org.ktorm.r2dbc.schema
 
 import io.r2dbc.spi.Row
-import io.r2dbc.spi.RowMetadata
 import io.r2dbc.spi.Statement
 import kotlin.reflect.KClass
 
@@ -56,6 +55,25 @@ public open class SimpleSqlType<T : Any>(public val kotlinType: KClass<T>) : Sql
     override val javaType: Class<T>
         get() = kotlinType.javaObjectType
 
+}
+
+public abstract class ConvertibleSqlType<R : Any>(kotlinType: KClass<R>) : SimpleSqlType<R>(kotlinType) {
+
+    override val javaType: Class<R> = kotlinType.javaObjectType
+
+    public abstract fun convert(value: Any): R
+
+    override fun getResult(row: Row, index: Int): R? {
+        val metadata = row.metadata.getColumnMetadata(index)
+        val value = row.get(index, metadata.javaType) ?: return null
+        return convert(value)
+    }
+
+    override fun getResult(row: Row, name: String): R? {
+        val metadata = row.metadata.getColumnMetadata(name)
+        val value = row.get(name, metadata.javaType) ?: return null
+        return convert(value)
+    }
 }
 
 public class TransformedSqlType<T : Any, R : Any>(
