@@ -85,7 +85,7 @@ class DatabaseTest : BaseTest() {
     fun tableTest() = runBlocking {
         database.useTransaction {
             database.useTransaction {
-                for (employee in database.employees) {
+                database.employees.forEach {
                     println(it)
                 }
                 throw RuntimeException()
