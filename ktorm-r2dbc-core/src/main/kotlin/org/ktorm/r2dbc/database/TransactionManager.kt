@@ -38,14 +38,10 @@ public interface TransactionManager {
      */
     public suspend fun getCurrentTransaction(): Transaction?
 
-    /**
-     * Open a new transaction for the current thread using the specific isolation if there is no transaction opened.
-     *
-     * @param isolation the transaction isolation, by default, [defaultIsolation] is used.
-     * @return the new-created transaction.
-     * @throws [IllegalStateException] if there is already a transaction opened.
-     */
-    public suspend fun newTransaction(isolation: IsolationLevel? = defaultIsolation): Transaction
+    public suspend fun <T> useTransaction(
+        isolation: IsolationLevel? = defaultIsolation,
+        func: suspend (Transaction) -> T
+    ): T
 }
 
 /**

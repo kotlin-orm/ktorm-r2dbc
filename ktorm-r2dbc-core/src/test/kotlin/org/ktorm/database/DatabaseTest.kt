@@ -83,9 +83,13 @@ class DatabaseTest : BaseTest() {
 
     @Test
     fun tableTest() = runBlocking {
-        val employees = database.sequenceOf(Employees)
-        employees.forEach {
-            println(it)
+        database.useTransaction {
+            database.useTransaction {
+                for (employee in database.employees) {
+                    println(it)
+                }
+                throw RuntimeException()
+            }
         }
         assert(true)
     }

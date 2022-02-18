@@ -1,6 +1,7 @@
 package org.ktorm.r2dbc.database
 
 import io.r2dbc.spi.*
+import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.reactive.awaitFirst
 import kotlinx.coroutines.reactive.awaitFirstOrNull
 import kotlinx.coroutines.reactive.awaitSingle
@@ -31,6 +32,7 @@ public class Database(
      * The name of the connected database product, eg. MySQL, H2.
      */
     public val productName: String
+
     /**
      * The version of the connected database product.
      */
@@ -124,7 +126,6 @@ public class Database(
     public val maxColumnNameLength: Int
 
 
-
     init {
         fun kotlin.Result<String?>.orEmpty() = getOrNull().orEmpty()
 
@@ -175,30 +176,35 @@ public class Database(
     }
 
     @OptIn(ExperimentalContracts::class)
-    public suspend inline fun <T> useTransaction(isolation: IsolationLevel? = null, func: (Transaction) -> T): T {
+    public suspend fun <T> useTransaction(
+        isolation: IsolationLevel? = null,
+        func: suspend (Transaction) -> T
+    ): T {
         contract {
             callsInPlace(func, InvocationKind.EXACTLY_ONCE)
         }
 
         val current = transactionManager.getCurrentTransaction()
-        val isOuter = current == null
-        val transaction = current ?: transactionManager.newTransaction(isolation)
-        var throwable: Throwable? = null
 
-        try {
-            return func(transaction)
-        } catch (e: R2dbcException) {
-            throwable = exceptionTranslator?.invoke(e) ?: e
-            throw throwable
-        } catch (e: Throwable) {
-            throwable = e
-            throw throwable
-        } finally {
-            if (isOuter) {
+        if (current != null) {
+            return func(current)
+        } else {
+            return transactionManager.useTransaction(isolation) {
+                var throwable: Throwable? = null
                 try {
-                    if (throwable == null) transaction.commit() else transaction.rollback()
+                    func(it)
+                } catch (e: R2dbcException) {
+                    throwable = exceptionTranslator?.invoke(e) ?: e
+                    throw throwable
+                } catch (e: Throwable) {
+                    throwable = e
+                    throw throwable
                 } finally {
-                    transaction.close()
+                    try {
+                        if (throwable == null) it.commit() else it.rollback()
+                    } finally {
+                        it.close()
+                    }
                 }
             }
         }
@@ -263,6 +269,7 @@ public class Database(
             return effects
         }
     }
+
     /**
      * Batch execute the given SQL expressions and return the effected row counts for each expression.
      *
@@ -300,9 +307,9 @@ public class Database(
 
             val results = statement.execute().toList()
 
-           /* if (logaddBatchger.isDebugEnabled()) {
-                logger.debug("Effects: ${results?.contentToString()}")
-            }*/
+            /* if (logaddBatchger.isDebugEnabled()) {
+                 logger.debug("Effects: ${results?.contentToString()}")
+             }*/
 
             return results.map { result -> result.rowsUpdated.awaitFirst() }.toIntArray()
         }
