@@ -185,7 +185,7 @@ class EntitySequenceTest : BaseTest() {
 
     @Test
     fun testSingle() = runBlocking {
-        val employee = database.employees.singleOrNull { it.departmentId eq 1 }
+        val employee = database.employees.singleOrNull { it.departmentId eq -1 }
         assert(employee == null)
     }
 

@@ -6,8 +6,6 @@ import kotlin.reflect.KClass
 
 public interface SqlType<T : Any> {
 
-    public val javaType: Class<T>
-
     public fun bindParameter(statement: Statement, index: Int, value: T?)
 
     public fun bindParameter(statement: Statement, name: String, value: T?)
@@ -21,9 +19,8 @@ public interface SqlType<T : Any> {
 public fun <T : Any, R : Any> SqlType<T>.transform(
     fromUnderlyingValue: (T) -> R,
     toUnderlyingValue: (R) -> T,
-    javaType: Class<R>
 ): SqlType<R> {
-    return TransformedSqlType(this, fromUnderlyingValue, toUnderlyingValue, javaType)
+    return TransformedSqlType(this, fromUnderlyingValue, toUnderlyingValue)
 }
 
 public open class SimpleSqlType<T : Any>(public val kotlinType: KClass<T>) : SqlType<T> {
@@ -52,14 +49,9 @@ public open class SimpleSqlType<T : Any>(public val kotlinType: KClass<T>) : Sql
         return row.get(name, kotlinType.javaObjectType)
     }
 
-    override val javaType: Class<T>
-        get() = kotlinType.javaObjectType
-
 }
 
 public abstract class ConvertibleSqlType<R : Any>(kotlinType: KClass<R>) : SimpleSqlType<R>(kotlinType) {
-
-    override val javaType: Class<R> = kotlinType.javaObjectType
 
     public abstract fun convert(value: Any): R
 
@@ -80,7 +72,6 @@ public class TransformedSqlType<T : Any, R : Any>(
     public val underlyingType: SqlType<T>,
     public val fromUnderlyingValue: (T) -> R,
     public val toUnderlyingValue: (R) -> T,
-    public override val javaType: Class<R>
 ) : SqlType<R> {
 
     override fun bindParameter(statement: Statement, index: Int, value: R?) {

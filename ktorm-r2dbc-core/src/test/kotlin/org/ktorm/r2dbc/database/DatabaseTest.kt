@@ -1,30 +1,43 @@
 package org.ktorm.r2dbc.database
 
+import kotlinx.coroutines.reactive.awaitFirst
 import kotlinx.coroutines.reactive.awaitFirstOrNull
 import kotlinx.coroutines.runBlocking
 import org.junit.Test
 import org.ktorm.r2dbc.BaseTest
-import org.ktorm.r2dbc.dsl.insert
+import org.ktorm.r2dbc.dsl.*
 import org.ktorm.r2dbc.entity.*
-import java.time.LocalDate
+import org.ktorm.r2dbc.schema.*
+import java.lang.IllegalStateException
 
 /**
  * Created by vince on Dec 02, 2018.
  */
+
 @ExperimentalUnsignedTypes
 class DatabaseTest : BaseTest() {
 
+    @Test
+    fun testMetadata() {
+        with(database) {
+            println(productName)
+            println(productVersion)
+            println(keywords.toString())
+            println(identifierQuoteString)
+            println(extraNameCharacters)
+        }
+    }
 
-    /*@Test
-    fun testKeywordWrapping(): Unit = runBlocking {
-        val configs = object : Table<Nothing>("t_config") {
-            val key = varchar("key").primaryKey()
-            val value = varchar("value")
+    @Test
+    fun testKeywordWrapping() = runBlocking {
+        val configs = object : Table<Nothing>("T_CONFIG") {
+            val key = varchar("KEY").primaryKey()
+            val value = varchar("VALUE")
         }
 
-        database.useConnection {
-            val sql =  """CREATE TABLE T_CONFIG(KEY VARCHAR(128) PRIMARY KEY, VALUE VARCHAR(128))"""
-            it.createStatement(sql).execute().awaitFirstOrNull()
+        database.useConnection { conn ->
+            val sql = """CREATE TABLE T_CONFIG("KEY" VARCHAR(128) PRIMARY KEY, "VALUE" VARCHAR(128))"""
+            conn.createStatement(sql).execute().awaitFirst()
         }
 
         database.insert(configs) {
@@ -35,8 +48,8 @@ class DatabaseTest : BaseTest() {
         assert(database.sequenceOf(configs).count { it.key eq "test" } == 1)
 
         database.delete(configs) { it.key eq "test" }
-    }*/
-/*
+        Unit
+    }
 
     @Test
     fun testTransaction() = runBlocking {
@@ -58,60 +71,46 @@ class DatabaseTest : BaseTest() {
             assert(database.departments.count() == 2)
         }
     }
-*/
-/*
 
     @Test
     fun testRawSql() = runBlocking {
         val names = database.useConnection { conn ->
             val sql = """
-                SELECT "NAME" FROM "T_EMPLOYEE"
-                WHERE "DEPARTMENT_ID" = ?
-                ORDER BY "ID"
+                select "name" from "t_employee"
+                where "department_id" = ?
+                order by "id"
             """
 
             val statement = conn.createStatement(sql)
             statement.bind(0, 1)
-            statement.execute().awaitFirstOrNull()?.map { row, _ ->
-                row.get(0)
-            }?.toList() ?: emptyList()
+            statement.execute().awaitFirst().map { row, _ -> row[0, String::class.java] }.toList()
         }
 
         assert(names.size == 2)
-        assert(names[0] == "VINCE")
-        assert(names[1] == "MARRY")
+        assert(names[0] == "vince")
+        assert(names[1] == "marry")
     }
-*/
 
-
-    /*fun BaseTable<*>.ulong(name: String): Column<ULong> {
-        return registerColumn(name, object : SqlType<ULong>(Types.BIGINT, "bigint unsigned") {
-            override fun doSetParameter(ps: PreparedStatement, index: Int, parameter: ULong) {
-                ps.setLong(index, parameter.toLong())
-            }
-
-            override fun doGetResult(rs: ResultSet, index: Int): ULong? {
-                return rs.getLong(index).toULong()
-            }
-        })
+    fun BaseTable<*>.ulong(name: String): Column<ULong> {
+        return registerColumn(name, LongSqlType.transform({ it.toULong() }, { it.toLong() }))
     }
 
     interface TestUnsigned : Entity<TestUnsigned> {
         companion object : Entity.Factory<TestUnsigned>()
+
         var id: ULong
     }
 
     @Test
-    fun testUnsigned() {
+    fun testUnsigned() = runBlocking {
         val t = object : Table<TestUnsigned>("T_TEST_UNSIGNED") {
             val id = ulong("ID").primaryKey().bindTo { it.id }
         }
 
         database.useConnection { conn ->
-            conn.createStatement().use { statement ->
-                val sql = """CREATE TABLE T_TEST_UNSIGNED(ID BIGINT UNSIGNED NOT NULL PRIMARY KEY)"""
-                statement.executeUpdate(sql)
-            }
+            val sql = """CREATE TABLE T_TEST_UNSIGNED(ID BIGINT NOT NULL PRIMARY KEY)"""
+            val statement = conn.createStatement(sql)
+            statement.execute().awaitFirst()
         }
 
         val unsigned = TestUnsigned { id = 5UL }
@@ -135,20 +134,20 @@ class DatabaseTest : BaseTest() {
 
     interface TestUnsignedNullable : Entity<TestUnsignedNullable> {
         companion object : Entity.Factory<TestUnsignedNullable>()
+
         var id: ULong?
     }
 
     @Test
-    fun testUnsignedNullable() {
+    fun testUnsignedNullable() = runBlocking {
         val t = object : Table<TestUnsignedNullable>("T_TEST_UNSIGNED_NULLABLE") {
             val id = ulong("ID").primaryKey().bindTo { it.id }
         }
 
         database.useConnection { conn ->
-            conn.createStatement().use { statement ->
-                val sql = """CREATE TABLE T_TEST_UNSIGNED_NULLABLE(ID BIGINT UNSIGNED NOT NULL PRIMARY KEY)"""
-                statement.executeUpdate(sql)
-            }
+            val sql = """CREATE TABLE T_TEST_UNSIGNED_NULLABLE(ID BIGINT NOT NULL PRIMARY KEY)"""
+            val statement = conn.createStatement(sql)
+            statement.execute().awaitFirst()
         }
 
         val unsigned = TestUnsignedNullable { id = 5UL }
@@ -181,5 +180,5 @@ class DatabaseTest : BaseTest() {
         assert(UShortArray::class.java.defaultValue !== UShortArray::class.java.defaultValue)
         assert(UIntArray::class.java.defaultValue !== UIntArray::class.java.defaultValue)
         assert(ULongArray::class.java.defaultValue !== ULongArray::class.java.defaultValue)
-    }*/
+    }
 }

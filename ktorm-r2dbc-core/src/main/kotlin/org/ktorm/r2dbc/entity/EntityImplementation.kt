@@ -25,12 +25,8 @@ import java.lang.reflect.InvocationHandler
 import java.lang.reflect.InvocationTargetException
 import java.lang.reflect.Method
 import java.util.*
-import kotlin.collections.LinkedHashMap
-import kotlin.collections.LinkedHashSet
-import kotlin.coroutines.Continuation
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty1
-import kotlin.reflect.full.functions
 import kotlin.reflect.jvm.javaGetter
 import kotlin.reflect.jvm.jvmErasure
 import kotlin.reflect.jvm.jvmName
@@ -44,6 +40,7 @@ internal class EntityImplementation(
 ) : InvocationHandler, Serializable {
 
     var values = LinkedHashMap<String, Any?>()
+
     @Transient
     var changedProperties = LinkedHashSet<String>()
 
@@ -71,8 +68,10 @@ internal class EntityImplementation(
                     "getEntityClass" -> this.entityClass
                     "getProperties" -> Collections.unmodifiableMap(this.values)
                     "discardChanges" -> this.doDiscardChanges()
-                    "flushChanges" -> this.doFlushChangeFun.call(args!!.first())
-                    "delete" -> this.doDeleteFun.call(args!!.first())
+                    "flushChanges" -> kotlin.runCatching { this.doFlushChangeFun.call(args!!.first()) }
+                        .onFailure { throw it.cause!! }
+                    "delete" -> kotlin.runCatching { this.doDeleteFun.call(args!!.first()) }
+                        .onFailure { throw it.cause!! }
                     "get" -> this.values[args!![0] as String]
                     "set" -> this.doSetProperty(args!![0] as String, args[1])
                     "copy" -> this.copy()

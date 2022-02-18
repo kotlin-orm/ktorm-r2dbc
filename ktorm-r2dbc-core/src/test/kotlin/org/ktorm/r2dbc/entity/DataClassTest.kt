@@ -1,13 +1,11 @@
 package org.ktorm.r2dbc.entity
 
-import io.r2dbc.spi.Row
 import kotlinx.coroutines.runBlocking
 import org.junit.Test
 import org.ktorm.r2dbc.BaseTest
 import org.ktorm.r2dbc.database.Database
 import org.ktorm.r2dbc.dsl.*
 import org.ktorm.r2dbc.schema.*
-import org.ktorm.schema.*
 import java.time.LocalDate
 
 /**
@@ -137,8 +135,8 @@ class DataClassTest : BaseTest() {
 
         println(salaries)
         assert(salaries.size == 2)
-        assert(salaries[1] == 150L)
-        assert(salaries[3] == 300L)
+        assert(salaries[2] == 150L)
+        assert(salaries[4] == 300L)
     }
 
     @Test
@@ -150,8 +148,8 @@ class DataClassTest : BaseTest() {
 
         println(counts)
         assert(counts.size == 2)
-        assert(counts[0] == 2L)
         assert(counts[1] == 2L)
+        assert(counts[2] == 2L)
     }
 
     @Test

@@ -18,9 +18,6 @@ package org.ktorm.r2dbc.schema
 
 import org.ktorm.r2dbc.dsl.QueryRow
 import org.ktorm.r2dbc.entity.*
-import org.ktorm.r2dbc.entity.EntityImplementation
-import org.ktorm.r2dbc.entity.implementation
-import org.ktorm.r2dbc.entity.setColumnValue
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty1
 import kotlin.reflect.jvm.jvmErasure
@@ -144,7 +141,7 @@ public open class Table<E : Entity<E>>(
     }
 
     private fun QueryRow.retrieveColumn(column: Column<*>, intoEntity: E, withReferences: Boolean) {
-        val columnValue = this[column]
+        val columnValue = this[column] ?: return
 
         for (binding in column.allBindings) {
             when (binding) {

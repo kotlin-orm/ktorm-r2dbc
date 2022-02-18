@@ -2,7 +2,6 @@ package org.ktorm.r2dbc.database
 
 import io.r2dbc.spi.*
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.reactive.asFlow
 import kotlinx.coroutines.reactive.awaitFirst
 import kotlinx.coroutines.reactive.awaitFirstOrNull
@@ -12,9 +11,7 @@ import org.ktorm.r2dbc.expression.ArgumentExpression
 import org.ktorm.r2dbc.expression.SqlExpression
 import org.ktorm.r2dbc.logging.Logger
 import org.ktorm.r2dbc.logging.detectLoggerImplementation
-import org.ktorm.r2dbc.schema.IntSqlType
 import org.ktorm.r2dbc.schema.SqlType
-import java.sql.PreparedStatement
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
@@ -287,7 +284,8 @@ public class Database(
 
         useConnection { conn ->
             val statement = conn.createStatement(sql)
-            for (expr in expressions) {
+            val size = expressions.size
+            expressions.forEachIndexed { index, expr ->
                 val (subSql, args) = formatExpression(expr)
 
                 if (subSql != sql) {
@@ -300,9 +298,10 @@ public class Database(
                 }
 
                 statement.bindParameters(args)
-                statement.add()
+                if (index < size - 1) {
+                    statement.add()
+                }
             }
-
             val results = statement.execute().toList()
             return results.map { result -> result.rowsUpdated.awaitFirst() }.toIntArray()
         }
@@ -327,9 +326,10 @@ public class Database(
         useConnection {
             val statement = it.createStatement(sql)
             statement.bindParameters(args)
-            val rowsUpdated = statement.execute().awaitFirst().rowsUpdated.awaitFirst()
-            val rows = statement.returnGeneratedValues().execute().awaitFirst().map { row, _ -> row }.asFlow()
-            return Pair(rowsUpdated,rows)
+            val result = statement.returnGeneratedValues().execute().awaitFirst()
+            val rowsUpdated = result.rowsUpdated.awaitFirst()
+            val rows = result.map { row, _ -> row }.asFlow()
+            return Pair(rowsUpdated, rows)
         }
     }
 
@@ -348,7 +348,7 @@ public class Database(
                 dialect = dialect,
                 logger = logger,
                 alwaysQuoteIdentifiers = alwaysQuoteIdentifiers,
-                generateSqlInUpperCase =  generateSqlInUpperCase
+                generateSqlInUpperCase = generateSqlInUpperCase
             )
         }
 
@@ -367,7 +367,7 @@ public class Database(
                 dialect = dialect,
                 logger = logger,
                 alwaysQuoteIdentifiers = alwaysQuoteIdentifiers,
-                generateSqlInUpperCase =  generateSqlInUpperCase
+                generateSqlInUpperCase = generateSqlInUpperCase
             )
         }
     }

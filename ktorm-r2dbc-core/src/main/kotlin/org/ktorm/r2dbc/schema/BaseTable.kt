@@ -194,41 +194,14 @@ public abstract class BaseTable<E : Any>(
      * @return the new [Column] instance with its type changed to [R].
      * @see SqlType.transform
      */
-    public inline fun <C : Any, reified R : Any> Column<C>.transform(
-        noinline fromUnderlyingValue: (C) -> R,
-        noinline toUnderlyingValue: (R) -> C,
-    ): Column<R> {
-        return transform(fromUnderlyingValue, toUnderlyingValue, R::class.java)
-    }
-
-    /**
-     * Transform the registered column's [SqlType] to another. The transformed [SqlType] has the same `typeCode` and
-     * `typeName` as the underlying one, and performs the specific transformations on column values.
-     *
-     * This enables a user-friendly syntax to extend more data types. For example, the following code defines a column
-     * of type `Column<UserRole>`, based on the existing column definition function [int]:
-     *
-     * ```kotlin
-     * val role = int("role").transform({ UserRole.fromCode(it) }, { it.code })
-     * ```
-     *
-     * Note: Since [Column] is immutable, this function will create a new [Column] instance and replace the origin
-     * registered one.
-     *
-     * @param fromUnderlyingValue a function that transforms a value of underlying type to the user's type.
-     * @param toUnderlyingValue a function that transforms a value of user's type the to the underlying type.
-     * @return the new [Column] instance with its type changed to [R].
-     * @see SqlType.transform
-     */
     public fun <C : Any, R : Any> Column<C>.transform(
         fromUnderlyingValue: (C) -> R,
         toUnderlyingValue: (R) -> C,
-        javaType: Class<R>
     ): Column<R> {
         checkRegistered()
         checkTransformable()
 
-        val result = Column(table, name, sqlType = sqlType.transform(fromUnderlyingValue, toUnderlyingValue, javaType))
+        val result = Column(table, name, sqlType = sqlType.transform(fromUnderlyingValue, toUnderlyingValue))
         _columns[name] = result
         return result
     }

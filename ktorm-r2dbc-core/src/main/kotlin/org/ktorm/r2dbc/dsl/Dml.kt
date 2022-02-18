@@ -17,6 +17,7 @@
 package org.ktorm.r2dbc.dsl
 
 import io.r2dbc.spi.Statement
+import kotlinx.coroutines.flow.firstOrNull
 import org.ktorm.r2dbc.database.Database
 import org.ktorm.r2dbc.expression.*
 import org.ktorm.r2dbc.schema.BaseTable
@@ -149,26 +150,23 @@ public suspend fun <T : BaseTable<*>> Database.insert(table: T, block: Assignmen
  * @param block the DSL block, an extension function of [AssignmentsBuilder], used to construct the expression.
  * @return the first auto-generated key.
  */
-/*
-TODO
-public fun <T : BaseTable<*>> Database.insertAndGenerateKey(table: T, block: AssignmentsBuilder.(T) -> Unit): Any {
+public suspend fun <T : BaseTable<*>> Database.insertAndGenerateKey(
+    table: T,
+    block: AssignmentsBuilder.(T) -> Unit
+): Any {
     val builder = AssignmentsBuilder().apply { block(table) }
     val expression = AliasRemover.visit(InsertExpression(table.asExpression(), builder.assignments))
     val (_, rowSet) = executeUpdateAndRetrieveKeys(expression)
+    val row = rowSet.firstOrNull() ?: error("No generated key returns by database.")
+    val pk = table.singlePrimaryKey { "Key retrieval is not supported for compound primary keys." }
+    val generatedKey = pk.sqlType.getResult(row, 0) ?: error("Generated key is null.")
 
-    if (rowSet.next()) {
-        val pk = table.singlePrimaryKey { "Key retrieval is not supported for compound primary keys." }
-        val generatedKey = pk.sqlType.getResult(rowSet, 1) ?: error("Generated key is null.")
-
-        if (logger.isDebugEnabled()) {
-            logger.debug("Generated Key: $generatedKey")
-        }
-
-        return generatedKey
-    } else {
-        error("No generated key returns by database.")
+    if (logger.isDebugEnabled()) {
+        logger.debug("Generated Key: $generatedKey")
     }
-}*/
+
+    return generatedKey
+}
 
 /**
  * Construct insert expressions in the given closure, then batch execute them and return the effected

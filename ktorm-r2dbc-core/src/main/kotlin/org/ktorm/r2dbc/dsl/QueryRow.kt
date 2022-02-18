@@ -53,6 +53,26 @@ public class QueryRow internal constructor(public val query: Query, private val 
         }
     }
 
+    /**
+     * Obtain the value of the specific [ColumnDeclaringExpression] instance.
+     *
+     * Note that if the column doesn't exist in the result set, this function will return null rather than
+     * throwing an exception.
+     */
+    public operator fun <C : Any> get(column: ColumnDeclaringExpression<C>): C? {
+        if (column.declaredName.isNullOrBlank()) {
+            throw IllegalArgumentException("Label of the specified column cannot be null or blank.")
+        }
+
+        for (index in  row.metadata.columnMetadatas.indices) {
+            if (row.metadata.columnMetadatas[index].name eq column.declaredName) {
+                return column.sqlType.getResult(row,index)
+            }
+        }
+
+        // Return null if the column doesn't exist in the result set.
+        return null
+    }
 
     private infix fun String?.eq(other: String?) = this.equals(other, ignoreCase = true)
 

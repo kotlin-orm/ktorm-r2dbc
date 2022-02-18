@@ -19,9 +19,9 @@ package org.ktorm.r2dbc.dsl
 import org.ktorm.r2dbc.expression.AggregateExpression
 import org.ktorm.r2dbc.expression.AggregateType
 import org.ktorm.r2dbc.schema.ColumnDeclaring
+import org.ktorm.r2dbc.schema.DoubleSqlType
 import org.ktorm.r2dbc.schema.IntSqlType
 import org.ktorm.r2dbc.schema.LongSqlType
-import org.ktorm.r2dbc.schema.SimpleSqlType
 
 /**
  * The min function, translated to `min(column)` in SQL.
@@ -55,14 +55,14 @@ public fun <C : Comparable<C>> maxDistinct(column: ColumnDeclaring<C>): Aggregat
  * The avg function, translated to `avg(column)` in SQL.
  */
 public fun <C : Number> avg(column: ColumnDeclaring<C>): AggregateExpression<Double> {
-    return AggregateExpression(AggregateType.AVG, column.asExpression(), false, SimpleSqlType(Double::class))
+    return AggregateExpression(AggregateType.AVG, column.asExpression(), false, DoubleSqlType)
 }
 
 /**
  * The avg function with distinct, translated to `avg(distinct column)` in SQL.
  */
 public fun <C : Number> avgDistinct(column: ColumnDeclaring<C>): AggregateExpression<Double> {
-    return AggregateExpression(AggregateType.AVG, column.asExpression(), true, SimpleSqlType(Double::class))
+    return AggregateExpression(AggregateType.AVG, column.asExpression(), true, DoubleSqlType)
 }
 
 /**
