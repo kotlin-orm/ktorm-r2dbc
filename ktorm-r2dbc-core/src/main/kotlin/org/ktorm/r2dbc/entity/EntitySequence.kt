@@ -707,7 +707,7 @@ public suspend inline fun <E : Any, T : BaseTable<E>, reified C : Any> EntitySeq
         columns = listOf(aggregation.aliased(null))
     )
 
-    val rowSet = Query(database, expr).doQuery()
+    val rowSet = Query(database, expr).doQuery().toList()
     val count = rowSet.count()
     if (count == 1) {
         val row = rowSet.first()

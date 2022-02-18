@@ -163,7 +163,7 @@ public interface Entity<E : Entity<E>> : Serializable {
      * @see update
      */
     @Throws(SQLException::class)
-    public fun flushChanges(): Int
+    public suspend fun flushChanges(): Int
 
     /**
      * Clear the tracked property changes of this entity.
@@ -188,7 +188,7 @@ public interface Entity<E : Entity<E>> : Serializable {
      * @see flushChanges
      */
     @Throws(SQLException::class)
-    public fun delete(): Int
+    public suspend fun delete(): Int
 
     /**
      * Obtain a property's value by its name.

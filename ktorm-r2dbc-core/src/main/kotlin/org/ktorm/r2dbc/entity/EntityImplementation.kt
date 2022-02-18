@@ -27,8 +27,10 @@ import java.lang.reflect.Method
 import java.util.*
 import kotlin.collections.LinkedHashMap
 import kotlin.collections.LinkedHashSet
+import kotlin.coroutines.Continuation
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty1
+import kotlin.reflect.full.functions
 import kotlin.reflect.jvm.javaGetter
 import kotlin.reflect.jvm.jvmErasure
 import kotlin.reflect.jvm.jvmName
@@ -42,7 +44,12 @@ internal class EntityImplementation(
 ) : InvocationHandler, Serializable {
 
     var values = LinkedHashMap<String, Any?>()
-    @Transient var changedProperties = LinkedHashSet<String>()
+    @Transient
+    var changedProperties = LinkedHashSet<String>()
+
+    private val doDeleteFun = this::doDelete
+    private val doFlushChangeFun = this::doFlushChanges
+
 
     companion object {
         private const val serialVersionUID = 1L
@@ -63,9 +70,9 @@ internal class EntityImplementation(
                 when (method.name) {
                     "getEntityClass" -> this.entityClass
                     "getProperties" -> Collections.unmodifiableMap(this.values)
-                 /*   "flushChanges" -> this.doFlushChanges()
                     "discardChanges" -> this.doDiscardChanges()
-                    "delete" -> this.doDelete()*/
+                    "flushChanges" -> this.doFlushChangeFun.call(args!!.first())
+                    "delete" -> this.doDeleteFun.call(args!!.first())
                     "get" -> this.values[args!![0] as String]
                     "set" -> this.doSetProperty(args!![0] as String, args[1])
                     "copy" -> this.copy()
@@ -107,17 +114,18 @@ internal class EntityImplementation(
         }
     }
 
-    private val KProperty1<*, *>.defaultValue: Any get() {
-        try {
-            return javaGetter!!.returnType.defaultValue
-        } catch (e: Throwable) {
-            val msg = "" +
-                "The value of non-null property [$this] doesn't exist, " +
-                "an error occurred while trying to create a default one. " +
-                "Please ensure its value exists, or you can mark the return type nullable [${this.returnType}?]"
-            throw IllegalStateException(msg, e)
+    private val KProperty1<*, *>.defaultValue: Any
+        get() {
+            try {
+                return javaGetter!!.returnType.defaultValue
+            } catch (e: Throwable) {
+                val msg = "" +
+                        "The value of non-null property [$this] doesn't exist, " +
+                        "an error occurred while trying to create a default one. " +
+                        "Please ensure its value exists, or you can mark the return type nullable [${this.returnType}?]"
+                throw IllegalStateException(msg, e)
+            }
         }
-    }
 
     private fun cacheDefaultValue(prop: KProperty1<*, *>, value: Any) {
         val type = prop.javaGetter!!.returnType

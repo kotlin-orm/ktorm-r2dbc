@@ -1,6 +1,6 @@
 
-DROP TABLE IF EXISTS "T_DEPARTMENT";
-DROP TABLE IF EXISTS "T_EMPLOYEE";
-DROP TABLE IF EXISTS "T_EMPLOYEE0";
-DROP TABLE IF EXISTS "COMPANY"."T_CUSTOMER";
-DROP SCHEMA IF EXISTS "COMPANY";
+drop table if exists "t_department";
+drop table if exists "t_employee";
+drop table if exists "t_employee0";
+drop table if exists "company"."t_customer";
+drop schema if exists "company";

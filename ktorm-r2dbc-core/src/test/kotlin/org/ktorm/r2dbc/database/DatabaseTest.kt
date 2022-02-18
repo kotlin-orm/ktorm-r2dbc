@@ -1,12 +1,9 @@
-package org.ktorm.database
+package org.ktorm.r2dbc.database
 
-import kotlinx.coroutines.reactive.awaitFirst
 import kotlinx.coroutines.reactive.awaitFirstOrNull
-import kotlinx.coroutines.reactive.awaitSingle
 import kotlinx.coroutines.runBlocking
 import org.junit.Test
-import org.ktorm.BaseTest
-import org.ktorm.r2dbc.database.toList
+import org.ktorm.r2dbc.BaseTest
 import org.ktorm.r2dbc.dsl.insert
 import org.ktorm.r2dbc.entity.*
 import java.time.LocalDate
@@ -39,6 +36,7 @@ class DatabaseTest : BaseTest() {
 
         database.delete(configs) { it.key eq "test" }
     }*/
+/*
 
     @Test
     fun testTransaction() = runBlocking {
@@ -60,6 +58,8 @@ class DatabaseTest : BaseTest() {
             assert(database.departments.count() == 2)
         }
     }
+*/
+/*
 
     @Test
     fun testRawSql() = runBlocking {
@@ -81,36 +81,8 @@ class DatabaseTest : BaseTest() {
         assert(names[0] == "VINCE")
         assert(names[1] == "MARRY")
     }
+*/
 
-    @Test
-    fun tableTest() = runBlocking {
-        database.useTransaction {
-            database.useTransaction {
-                database.employees.forEach {
-                    println(it)
-                }
-                throw RuntimeException()
-            }
-        }
-        assert(true)
-    }
-
-    @Test
-    fun insertTest() = runBlocking {
-        database.useTransaction {
-            val department = database.departments.toList().first()
-            val employee = Employee {
-                this.name =  "vince"
-                this.job = "engineer"
-                this.manager = null
-                this.hireDate = LocalDate.now()
-                this.salary = 100
-                this.department = department
-            }
-            val add = database.employees.add(employee)
-            println(employee)
-        }
-    }
 
     /*fun BaseTable<*>.ulong(name: String): Column<ULong> {
         return registerColumn(name, object : SqlType<ULong>(Types.BIGINT, "bigint unsigned") {

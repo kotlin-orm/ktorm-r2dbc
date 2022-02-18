@@ -1,12 +1,16 @@
-package org.ktorm
+package org.ktorm.r2dbc
 
 import kotlinx.coroutines.reactive.awaitFirstOrNull
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Before
 import org.ktorm.r2dbc.database.Database
+import org.ktorm.r2dbc.database.SqlDialect
 import org.ktorm.r2dbc.entity.Entity
 import org.ktorm.r2dbc.entity.sequenceOf
+import org.ktorm.r2dbc.expression.ArgumentExpression
+import org.ktorm.r2dbc.expression.QueryExpression
+import org.ktorm.r2dbc.expression.SqlFormatter
 import org.ktorm.r2dbc.logging.ConsoleLogger
 import org.ktorm.r2dbc.logging.LogLevel
 import org.ktorm.r2dbc.schema.*
@@ -25,9 +29,42 @@ open class BaseTest {
             database = Database.connect(
                 url = "r2dbc:h2:mem:///testdb?DB_CLOSE_DELAY=-1",
                 logger = ConsoleLogger(threshold = LogLevel.TRACE),
+                dialect =  getH2Dialect(),
+                alwaysQuoteIdentifiers = true
             )
 
             execSqlScript("init-data.sql")
+        }
+    }
+
+    fun getH2Dialect() = object: SqlDialect {
+        override val identifierQuoteString: String = "\""
+        override val extraNameCharacters: String = ""
+        override val supportsMixedCaseIdentifiers: Boolean = false
+        override val storesMixedCaseIdentifiers: Boolean = false
+        override val storesUpperCaseIdentifiers: Boolean = true
+        override val storesLowerCaseIdentifiers: Boolean = false
+        override val supportsMixedCaseQuotedIdentifiers: Boolean = true
+        override val storesMixedCaseQuotedIdentifiers: Boolean = true
+        override val storesUpperCaseQuotedIdentifiers: Boolean = false
+        override val storesLowerCaseQuotedIdentifiers: Boolean = false
+        override val sqlKeywords: Set<String> = emptySet()
+        override val maxColumnNameLength: Int = 0
+        override fun createSqlFormatter(database: Database, beautifySql: Boolean, indentSize: Int): SqlFormatter {
+            return object:SqlFormatter(database, beautifySql, indentSize) {
+                override fun writePagination(expr: QueryExpression) {
+                    newLine(Indentation.SAME)
+                    if (expr.limit != null) {
+                        writeKeyword("limit ? ")
+                        _parameters += ArgumentExpression(expr.limit, IntSqlType)
+                    }
+                    if (expr.offset != null) {
+                        writeKeyword("offset ? ")
+                        _parameters += ArgumentExpression(expr.offset, IntSqlType)
+                    }
+                }
+
+            }
         }
     }
 
@@ -76,8 +113,8 @@ open class BaseTest {
         var salary: Long
         var department: Department
 
-        val upperName get() = name.toUpperCase()
-        fun upperName() = name.toUpperCase()
+        val upperName get() = name.uppercase()
+        fun upperName() = name.uppercase()
     }
 
     interface Customer : Entity<Customer> {

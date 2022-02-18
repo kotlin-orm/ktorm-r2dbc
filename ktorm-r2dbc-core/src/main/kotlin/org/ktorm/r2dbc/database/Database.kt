@@ -338,20 +338,26 @@ public class Database(
         public fun connect(
             connectionFactory: ConnectionFactory,
             dialect: SqlDialect = detectDialectImplementation(),
-            logger: Logger = detectLoggerImplementation()
+            logger: Logger = detectLoggerImplementation(),
+            alwaysQuoteIdentifiers: Boolean = false,
+            generateSqlInUpperCase: Boolean? = null
         ): Database {
             return Database(
                 connectionFactory = connectionFactory,
                 transactionManager = CoroutinesTransactionManager(connectionFactory),
                 dialect = dialect,
-                logger = logger
+                logger = logger,
+                alwaysQuoteIdentifiers = alwaysQuoteIdentifiers,
+                generateSqlInUpperCase =  generateSqlInUpperCase
             )
         }
 
         public fun connect(
             url: String,
             dialect: SqlDialect = detectDialectImplementation(),
-            logger: Logger = detectLoggerImplementation()
+            logger: Logger = detectLoggerImplementation(),
+            alwaysQuoteIdentifiers: Boolean = false,
+            generateSqlInUpperCase: Boolean? = null
         ): Database {
             val connectionFactory = ConnectionFactories.get(url)
 
@@ -359,7 +365,9 @@ public class Database(
                 connectionFactory = connectionFactory,
                 transactionManager = CoroutinesTransactionManager(connectionFactory),
                 dialect = dialect,
-                logger = logger
+                logger = logger,
+                alwaysQuoteIdentifiers = alwaysQuoteIdentifiers,
+                generateSqlInUpperCase =  generateSqlInUpperCase
             )
         }
     }
