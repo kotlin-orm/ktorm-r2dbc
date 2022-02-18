@@ -16,11 +16,13 @@
 
 package org.ktorm.r2dbc.dsl
 
+import kotlinx.coroutines.flow.*
 import org.ktorm.r2dbc.database.Database
 import org.ktorm.r2dbc.expression.*
 import org.ktorm.r2dbc.schema.BooleanSqlType
 import org.ktorm.r2dbc.schema.Column
 import org.ktorm.r2dbc.schema.ColumnDeclaring
+import org.ktorm.r2dbc.schema.LongSqlType
 import java.sql.ResultSet
 
 /**
@@ -77,7 +79,7 @@ public class Query(public val database: Database, public val expression: QueryEx
         database.formatExpression(expression, beautifySql = true).first
     }
 
-    public suspend fun doQuery(expression: QueryExpression = this.expression): List<QueryRow> {
+    public suspend fun doQuery(expression: QueryExpression = this.expression): Flow<QueryRow> {
         return database.executeQuery(expression).map { QueryRow(this@Query, it) }
     }
 
@@ -100,13 +102,13 @@ public class Query(public val database: Database, public val expression: QueryEx
      * it does, return the total record count of the query ignoring the offset and limit parameters. This property
      * is provided to support pagination, we can calculate the page count through dividing it by our page size.
      */
-    public suspend fun totalRecords(): Int {
+    public suspend fun totalRecords(): Long {
         return if (expression.offset == null && expression.limit == null) {
-            doQuery().size
+            doQuery().count().toLong()
         } else {
             val countExpr = expression.toCountExpression()
             val count = doQuery(countExpr)
-                .map { it.get(0, Int::class.java) }
+                .map { LongSqlType.getResult(it, it.metadata, 0) }
                 .firstOrNull()
             val (sql, _) = database.formatExpression(countExpr, beautifySql = true)
             count ?: throw IllegalStateException("No result return for sql: $sql")
@@ -121,18 +123,6 @@ public class Query(public val database: Database, public val expression: QueryEx
         return Query(database, expression)
     }
 
-    /**
-     * Return an iterator over the rows of this query.
-     *
-     * Note that this function is simply implemented as `rowSet.iterator()`, so every element returned by the iterator
-     * exactly shares the same instance as the [rowSet] property.
-     *
-     * @see rowSet
-     * @see ResultSet.iterator
-     */
-    public suspend operator fun iterator(): Iterator<QueryRow> {
-        return doQuery().iterator()
-    }
 }
 
 /**
@@ -419,8 +409,7 @@ public fun Query.unionAll(right: Query): Query {
  * @since 3.0.0
  */
 public suspend fun Query.asIterable(): Iterable<QueryRow> {
-    val iterator = iterator()
-    return Iterable { iterator }
+    return doQuery().toList()
 }
 
 /**
@@ -428,8 +417,8 @@ public suspend fun Query.asIterable(): Iterable<QueryRow> {
  *
  * @since 3.0.0
  */
-public suspend inline fun Query.forEach(action: (row: QueryRow) -> Unit) {
-    for (row in this) action(row)
+public suspend inline fun Query.forEach(crossinline action: (row: QueryRow) -> Unit) {
+    doQuery().collect { action(it) }
 }
 
 /**
@@ -439,9 +428,9 @@ public suspend inline fun Query.forEach(action: (row: QueryRow) -> Unit) {
  *
  * @since 3.0.0
  */
-public suspend inline fun Query.forEachIndexed(action: (index: Int, row: QueryRow) -> Unit) {
+public suspend inline fun Query.forEachIndexed(crossinline action: (index: Int, row: QueryRow) -> Unit) {
     var index = 0
-    for (row in this) action(index++, row)
+    doQuery().collect { action(index++, it) }
 }
 
 /**
@@ -452,7 +441,7 @@ public suspend inline fun Query.forEachIndexed(action: (index: Int, row: QueryRo
  */
 
 public suspend fun Query.withIndex(): Iterable<IndexedValue<QueryRow>> {
-    val iterator = IndexingIterator(iterator())
+    val iterator = IndexingIterator(doQuery().toList().iterator())
     return Iterable { iterator }
 }
 
@@ -479,7 +468,7 @@ internal class IndexingIterator<out T>(private val iterator: Iterator<T>) : Iter
  * @since 3.0.0
  */
 
-public suspend inline fun <R> Query.map(transform: (row: QueryRow) -> R): List<R> {
+public suspend inline fun <R> Query.map(crossinline transform: (row: QueryRow) -> R): List<R> {
     return mapTo(ArrayList(), transform)
 }
 
@@ -491,9 +480,10 @@ public suspend inline fun <R> Query.map(transform: (row: QueryRow) -> R): List<R
 
 public suspend inline fun <R, C : MutableCollection<in R>> Query.mapTo(
     destination: C,
-    transform: (row: QueryRow) -> R
+    crossinline transform: (row: QueryRow) -> R
 ): C {
-    for (row in this) destination += transform(row)
+
+    doQuery().collect { destination += transform(it) }
     return destination
 }
 
@@ -504,7 +494,7 @@ public suspend inline fun <R, C : MutableCollection<in R>> Query.mapTo(
  * @since 3.0.0
  */
 
-public suspend inline fun <R : Any> Query.mapNotNull(transform: (row: QueryRow) -> R?): List<R> {
+public suspend inline fun <R : Any> Query.mapNotNull(crossinline transform: (row: QueryRow) -> R?): List<R> {
     return mapNotNullTo(ArrayList(), transform)
 }
 
@@ -517,9 +507,11 @@ public suspend inline fun <R : Any> Query.mapNotNull(transform: (row: QueryRow) 
 
 public suspend inline fun <R : Any, C : MutableCollection<in R>> Query.mapNotNullTo(
     destination: C,
-    transform: (row: QueryRow) -> R?
+    crossinline transform: (row: QueryRow) -> R?
 ): C {
-    forEach { row -> transform(row)?.let { destination += it } }
+    doQuery().collect { row ->
+        transform(row)?.let { destination += it }
+    }
     return destination
 }
 
@@ -532,7 +524,7 @@ public suspend inline fun <R : Any, C : MutableCollection<in R>> Query.mapNotNul
  * @since 3.0.0
  */
 
-public suspend inline fun <R> Query.mapIndexed(transform: (index: Int, row: QueryRow) -> R): List<R> {
+public suspend inline fun <R> Query.mapIndexed(crossinline transform: (index: Int, row: QueryRow) -> R): List<R> {
     return mapIndexedTo(ArrayList(), transform)
 }
 
@@ -547,7 +539,7 @@ public suspend inline fun <R> Query.mapIndexed(transform: (index: Int, row: Quer
 
 public suspend inline fun <R, C : MutableCollection<in R>> Query.mapIndexedTo(
     destination: C,
-    transform: (index: Int, row: QueryRow) -> R
+    crossinline transform: (index: Int, row: QueryRow) -> R
 ): C {
     var index = 0
     return mapTo(destination) { row -> transform(index++, row) }
@@ -563,7 +555,7 @@ public suspend inline fun <R, C : MutableCollection<in R>> Query.mapIndexedTo(
  * @since 3.0.0
  */
 
-public suspend inline fun <R : Any> Query.mapIndexedNotNull(transform: (index: Int, row: QueryRow) -> R?): List<R> {
+public suspend inline fun <R : Any> Query.mapIndexedNotNull(crossinline transform: (index: Int, row: QueryRow) -> R?): List<R> {
     return mapIndexedNotNullTo(ArrayList(), transform)
 }
 
@@ -579,7 +571,7 @@ public suspend inline fun <R : Any> Query.mapIndexedNotNull(transform: (index: I
 
 public suspend inline fun <R : Any, C : MutableCollection<in R>> Query.mapIndexedNotNullTo(
     destination: C,
-    transform: (index: Int, row: QueryRow) -> R?
+    crossinline transform: (index: Int, row: QueryRow) -> R?
 ): C {
     forEachIndexed { index, row -> transform(index, row)?.let { destination += it } }
     return destination
@@ -592,7 +584,7 @@ public suspend inline fun <R : Any, C : MutableCollection<in R>> Query.mapIndexe
  * @since 3.0.0
  */
 
-public suspend inline fun <R> Query.flatMap(transform: (row: QueryRow) -> Iterable<R>): List<R> {
+public suspend inline fun <R> Query.flatMap(crossinline transform: (row: QueryRow) -> Iterable<R>): List<R> {
     return flatMapTo(ArrayList(), transform)
 }
 
@@ -605,9 +597,9 @@ public suspend inline fun <R> Query.flatMap(transform: (row: QueryRow) -> Iterab
 
 public suspend inline fun <R, C : MutableCollection<in R>> Query.flatMapTo(
     destination: C,
-    transform: (row: QueryRow) -> Iterable<R>
+    crossinline transform: (row: QueryRow) -> Iterable<R>
 ): C {
-    for (row in this) destination += transform(row)
+    doQuery().collect { destination += transform(it) }
     return destination
 }
 
@@ -618,7 +610,7 @@ public suspend inline fun <R, C : MutableCollection<in R>> Query.flatMapTo(
  * @since 3.1.0
  */
 
-public suspend inline fun <R> Query.flatMapIndexed(transform: (index: Int, row: QueryRow) -> Iterable<R>): List<R> {
+public suspend inline fun <R> Query.flatMapIndexed(crossinline transform: (index: Int, row: QueryRow) -> Iterable<R>): List<R> {
     return flatMapIndexedTo(ArrayList(), transform)
 }
 
@@ -631,7 +623,7 @@ public suspend inline fun <R> Query.flatMapIndexed(transform: (index: Int, row: 
 
 public suspend inline fun <R, C : MutableCollection<in R>> Query.flatMapIndexedTo(
     destination: C,
-    transform: (index: Int, row: QueryRow) -> Iterable<R>
+    crossinline transform: (index: Int, row: QueryRow) -> Iterable<R>
 ): C {
     var index = 0
     return flatMapTo(destination) { transform(index++, it) }
@@ -647,7 +639,7 @@ public suspend inline fun <R, C : MutableCollection<in R>> Query.flatMapIndexedT
  * @since 3.0.0
  */
 
-public suspend inline fun <K, V> Query.associate(transform: (row: QueryRow) -> Pair<K, V>): Map<K, V> {
+public suspend inline fun <K, V> Query.associate(crossinline transform: (row: QueryRow) -> Pair<K, V>): Map<K, V> {
     return associateTo(LinkedHashMap(), transform)
 }
 
@@ -663,8 +655,8 @@ public suspend inline fun <K, V> Query.associate(transform: (row: QueryRow) -> P
  */
 
 public suspend inline fun <K, V> Query.associateBy(
-    keySelector: (row: QueryRow) -> K,
-    valueTransform: (row: QueryRow) -> V
+    crossinline keySelector: (row: QueryRow) -> K,
+    crossinline valueTransform: (row: QueryRow) -> V
 ): Map<K, V> {
     return associateByTo(LinkedHashMap(), keySelector, valueTransform)
 }
@@ -680,9 +672,9 @@ public suspend inline fun <K, V> Query.associateBy(
 
 public suspend inline fun <K, V, M : MutableMap<in K, in V>> Query.associateTo(
     destination: M,
-    transform: (row: QueryRow) -> Pair<K, V>
+    crossinline transform: (row: QueryRow) -> Pair<K, V>
 ): M {
-    for (row in this) destination += transform(row)
+    doQuery().collect { destination += transform(it) }
     return destination
 }
 
@@ -697,10 +689,10 @@ public suspend inline fun <K, V, M : MutableMap<in K, in V>> Query.associateTo(
 
 public suspend inline fun <K, V, M : MutableMap<in K, in V>> Query.associateByTo(
     destination: M,
-    keySelector: (row: QueryRow) -> K,
-    valueTransform: (row: QueryRow) -> V
+    crossinline keySelector: (row: QueryRow) -> K,
+    crossinline valueTransform: (row: QueryRow) -> V
 ): M {
-    for (row in this) destination.put(keySelector(row), valueTransform(row))
+    doQuery().collect { destination.put(keySelector(it), valueTransform(it)) }
     return destination
 }
 
@@ -710,9 +702,9 @@ public suspend inline fun <K, V, M : MutableMap<in K, in V>> Query.associateByTo
  * @since 3.0.0
  */
 
-public suspend inline fun <R> Query.fold(initial: R, operation: (acc: R, row: QueryRow) -> R): R {
+public suspend inline fun <R> Query.fold(initial: R, crossinline operation: (acc: R, row: QueryRow) -> R): R {
     var accumulator = initial
-    for (row in this) accumulator = operation(accumulator, row)
+    doQuery().collect { accumulator = operation(accumulator, it) }
     return accumulator
 }
 
@@ -726,10 +718,10 @@ public suspend inline fun <R> Query.fold(initial: R, operation: (acc: R, row: Qu
  * @since 3.0.0
  */
 
-public suspend inline fun <R> Query.foldIndexed(initial: R, operation: (index: Int, acc: R, row: QueryRow) -> R): R {
+public suspend inline fun <R> Query.foldIndexed(initial: R, crossinline operation: (index: Int, acc: R, row: QueryRow) -> R): R {
     var index = 0
     var accumulator = initial
-    for (row in this) accumulator = operation(index++, accumulator, row)
+    doQuery().collect { accumulator = operation(index++, accumulator, it) }
     return accumulator
 }
 
@@ -742,24 +734,23 @@ public suspend inline fun <R> Query.foldIndexed(initial: R, operation: (index: I
  * @since 3.0.0
  */
 
-public suspend fun <A : Appendable> Query.joinTo(
+public suspend inline fun <A : Appendable> Query.joinTo(
     buffer: A,
     separator: CharSequence = ", ",
     prefix: CharSequence = "",
     postfix: CharSequence = "",
     limit: Int = -1,
     truncated: CharSequence = "...",
-    transform: (row: QueryRow) -> CharSequence
+    crossinline transform: (row: QueryRow) -> CharSequence
 ): A {
     buffer.append(prefix)
     var count = 0
-    for (row in this) {
+    doQuery().collect {
         if (++count > 1) buffer.append(separator)
         if (limit < 0 || count <= limit) {
-            buffer.append(transform(row))
+            buffer.append(transform(it))
         } else {
             buffer.append(truncated)
-            break
         }
     }
     buffer.append(postfix)
@@ -775,13 +766,13 @@ public suspend fun <A : Appendable> Query.joinTo(
  * @since 3.0.0
  */
 
-public suspend fun Query.joinToString(
+public suspend inline fun Query.joinToString(
     separator: CharSequence = ", ",
     prefix: CharSequence = "",
     postfix: CharSequence = "",
     limit: Int = -1,
     truncated: CharSequence = "...",
-    transform: (row: QueryRow) -> CharSequence
+    crossinline transform: (row: QueryRow) -> CharSequence
 ): String {
     return joinTo(StringBuilder(), separator, prefix, postfix, limit, truncated, transform).toString()
 }

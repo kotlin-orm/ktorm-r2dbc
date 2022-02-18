@@ -1,7 +1,8 @@
 package org.ktorm.r2dbc.database
 
 import io.r2dbc.spi.*
-import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.reactive.asFlow
 import kotlinx.coroutines.reactive.awaitFirst
 import kotlinx.coroutines.reactive.awaitFirstOrNull
 import kotlinx.coroutines.reactive.awaitSingle
@@ -246,15 +247,9 @@ public class Database(
         }
     }
 
-    public suspend fun executeQuery(expression: SqlExpression): List<Row> {
+    public suspend fun executeQuery(expression: SqlExpression): Flow<Row> {
         executeExpression(expression) { result ->
-            val rows = result.map { row, _ -> row }.toList()
-
-            if (logger.isDebugEnabled()) {
-                logger.debug("Results: ${rows.size}")
-            }
-
-            return rows
+            return result.map { row, _ -> row }.asFlow()
         }
     }
 

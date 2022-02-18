@@ -16,6 +16,10 @@
 
 package org.ktorm.r2dbc.entity
 
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.toList
 import org.ktorm.r2dbc.database.Database
 import org.ktorm.r2dbc.database.DialectFeatureNotSupportedException
 import org.ktorm.r2dbc.dsl.*
@@ -107,14 +111,14 @@ public class EntitySequence<E : Any, T : BaseTable<E>>(
      *
      * This property is delegated to [Query.rowSet], more details can be found in its documentation.
      */
-    public suspend fun getRowSet(): List<QueryRow> = query.doQuery()
+    public suspend fun getRowSet(): Flow<QueryRow> = query.doQuery()
 
     /**
      * The total records count of this query ignoring the pagination params.
      *
      * This property is delegated to [Query.totalRecords], more details can be found in its documentation.
      */
-    public suspend fun totalRecords(): Int = query.totalRecords()
+    public suspend fun totalRecords(): Long = query.totalRecords()
 
     /**
      * Return a copy of this [EntitySequence] with the [expression] modified.
@@ -136,17 +140,12 @@ public class EntitySequence<E : Any, T : BaseTable<E>>(
      * Return an iterator over the elements of this sequence.
      */
     @Suppress("IteratorNotThrowingNoSuchElementException")
-    public suspend operator fun iterator(): Iterator<E> {
-        val iterator = query.iterator()
-        return object : Iterator<E> {
-            override fun hasNext(): Boolean {
-                return iterator.hasNext()
-            }
+    private suspend operator fun iterator(): Iterator<E> {
+        return flow().toList().iterator()
+    }
 
-            override fun next(): E {
-                return entityExtractor(iterator.next())
-            }
-        }
+    public suspend fun flow(): Flow<E> {
+        return getRowSet().map(entityExtractor)
     }
 }
 
