@@ -84,18 +84,6 @@ public class Query(public val database: Database, public val expression: QueryEx
     }
 
     /**
-     * The [ResultSet] object of this query, lazy initialized after first access, obtained from the database by
-     * executing the generated SQL.
-     *
-     * Note that the return type of this property is not a normal [ResultSet], but a [QueryRow] instead. That's
-     * a special implementation provided by Ktorm, different from normal result sets, it is available offline and
-     * overrides the indexed access operator. More details can be found in the documentation of [QueryRow].
-     */
-    /* public val rowSet: QueryRow by lazy(LazyThreadSafetyMode.NONE) {
-         QueryRow(this, database.executeQuery(expression))
-     }*/
-
-    /**
      * The total record count of this query ignoring the pagination params.
      *
      * If the query doesn't limits the results via [Query.limit] function, return the size of the result set. Or if
@@ -429,8 +417,7 @@ public suspend inline fun Query.forEach(crossinline action: (row: QueryRow) -> U
  * @since 3.0.0
  */
 public suspend inline fun Query.forEachIndexed(crossinline action: (index: Int, row: QueryRow) -> Unit) {
-    var index = 0
-    doQuery().collect { action(index++, it) }
+    doQuery().collectIndexed { index, it ->  action(index, it) }
 }
 
 /**
@@ -441,8 +428,7 @@ public suspend inline fun Query.forEachIndexed(crossinline action: (index: Int, 
  */
 
 public suspend fun Query.withIndex(): Iterable<IndexedValue<QueryRow>> {
-    val iterator = IndexingIterator(doQuery().toList().iterator())
-    return Iterable { iterator }
+    return doQuery().toList().withIndex()
 }
 
 /**

@@ -14,10 +14,7 @@
  * limitations under the License.
  */
 
-package org.ktorm.r2dbc.schema
-
-import org.ktorm.r2dbc.entity.Entity
-import org.ktorm.r2dbc.entity.implementation
+package org.ktorm.r2dbc.entity
 
 internal fun Entity<*>.clearChangesRecursively() {
     implementation.changedProperties.clear()

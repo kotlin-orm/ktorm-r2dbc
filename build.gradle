@@ -98,6 +98,11 @@ subprojects { project ->
                             name = "vince"
                             email = "me@liuwj.me"
                         }
+                        developer {
+                            id = "lookup-cat"
+                            name = "夜里的向日葵"
+                            email = "641571835@qq.com"
+                        }
                     }
                     scm {
                         url = "https://github.com/kotlin-orm/ktorm-r2dbc.git"
