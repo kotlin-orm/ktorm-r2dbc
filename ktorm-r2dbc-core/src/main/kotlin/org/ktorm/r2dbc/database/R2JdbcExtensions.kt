@@ -31,7 +31,7 @@ public fun Statement.bindParameters(args: List<ArgumentExpression<*>>) {
     for ((i, expr) in args.withIndex()) {
         @Suppress("UNCHECKED_CAST")
         val sqlType = expr.sqlType as SqlType<Any>
-        sqlType.bindParameter(this, i + 1, expr.value)
+        sqlType.bindParameter(this, i, expr.value)
     }
 }
 

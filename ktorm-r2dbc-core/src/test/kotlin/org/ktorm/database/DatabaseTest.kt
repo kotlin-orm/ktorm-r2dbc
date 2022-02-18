@@ -1,14 +1,15 @@
 package org.ktorm.database
 
+import kotlinx.coroutines.reactive.awaitFirst
 import kotlinx.coroutines.reactive.awaitFirstOrNull
+import kotlinx.coroutines.reactive.awaitSingle
 import kotlinx.coroutines.runBlocking
 import org.junit.Test
 import org.ktorm.BaseTest
 import org.ktorm.r2dbc.database.toList
 import org.ktorm.r2dbc.dsl.insert
-import org.ktorm.r2dbc.entity.count
-import org.ktorm.r2dbc.entity.forEach
-import org.ktorm.r2dbc.entity.sequenceOf
+import org.ktorm.r2dbc.entity.*
+import java.time.LocalDate
 
 /**
  * Created by vince on Dec 02, 2018.
@@ -92,6 +93,23 @@ class DatabaseTest : BaseTest() {
             }
         }
         assert(true)
+    }
+
+    @Test
+    fun insertTest() = runBlocking {
+        database.useTransaction {
+            val department = database.departments.toList().first()
+            val employee = Employee {
+                this.name =  "vince"
+                this.job = "engineer"
+                this.manager = null
+                this.hireDate = LocalDate.now()
+                this.salary = 100
+                this.department = department
+            }
+            val add = database.employees.add(employee)
+            println(employee)
+        }
     }
 
     /*fun BaseTable<*>.ulong(name: String): Column<ULong> {

@@ -31,7 +31,7 @@ public class QueryRow internal constructor(public val query: Query, private val 
             // Try to find the column by label.
             for (index in metadata.columnMetadatas.indices) {
                 if (metadata.getColumnMetadata(index).name eq column.label) {
-                    return column.sqlType.getResult(row,metadata,index)
+                    return column.sqlType.getResult(row,index)
                 }
             }
             // Return null if the column doesn't exist in the result set.
@@ -47,7 +47,7 @@ public class QueryRow internal constructor(public val query: Query, private val 
 
             return when (indices.size) {
                 0 -> null // Return null if the column doesn't exist in the result set.
-                1 -> return column.sqlType.getResult(row,metadata,indices.first())
+                1 -> return column.sqlType.getResult(row,indices.first())
                 else -> throw IllegalArgumentException(warningConfusedColumnName(column.name))
             }
         }

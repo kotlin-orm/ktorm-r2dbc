@@ -13,9 +13,9 @@ public interface SqlType<T : Any> {
 
     public fun bindParameter(statement: Statement, name: String, value: T?)
 
-    public fun getResult(row: Row, metadata: RowMetadata, index: Int): T?
+    public fun getResult(row: Row, index: Int): T?
 
-    public fun getResult(row: Row, metadata: RowMetadata, name: String): T?
+    public fun getResult(row: Row, name: String): T?
 
 }
 
@@ -45,11 +45,11 @@ public open class SimpleSqlType<T : Any>(public val kotlinType: KClass<T>) : Sql
         }
     }
 
-    override fun getResult(row: Row, metadata: RowMetadata, index: Int): T? {
+    override fun getResult(row: Row, index: Int): T? {
         return row.get(index, kotlinType.javaObjectType)
     }
 
-    override fun getResult(row: Row, metadata: RowMetadata, name: String): T? {
+    override fun getResult(row: Row, name: String): T? {
         return row.get(name, kotlinType.javaObjectType)
     }
 
@@ -73,11 +73,11 @@ public class TransformedSqlType<T : Any, R : Any>(
         underlyingType.bindParameter(statement, name, value?.let(toUnderlyingValue))
     }
 
-    override fun getResult(row: Row, metadata: RowMetadata, index: Int): R? {
-        return underlyingType.getResult(row, metadata, index)?.let(fromUnderlyingValue)
+    override fun getResult(row: Row, index: Int): R? {
+        return underlyingType.getResult(row, index)?.let(fromUnderlyingValue)
     }
 
-    override fun getResult(row: Row, metadata: RowMetadata, name: String): R? {
-        return underlyingType.getResult(row, metadata, name)?.let(fromUnderlyingValue)
+    override fun getResult(row: Row, name: String): R? {
+        return underlyingType.getResult(row, name)?.let(fromUnderlyingValue)
     }
 }

@@ -96,7 +96,7 @@ public class Query(public val database: Database, public val expression: QueryEx
         } else {
             val countExpr = expression.toCountExpression()
             val count = doQuery(countExpr)
-                .map { LongSqlType.getResult(it, it.metadata, 0) }
+                .map { LongSqlType.getResult(it,  0) }
                 .firstOrNull()
             val (sql, _) = database.formatExpression(countExpr, beautifySql = true)
             count ?: throw IllegalStateException("No result return for sql: $sql")

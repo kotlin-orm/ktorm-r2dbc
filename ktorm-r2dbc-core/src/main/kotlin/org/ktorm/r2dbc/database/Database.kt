@@ -2,6 +2,7 @@ package org.ktorm.r2dbc.database
 
 import io.r2dbc.spi.*
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.reactive.asFlow
 import kotlinx.coroutines.reactive.awaitFirst
 import kotlinx.coroutines.reactive.awaitFirstOrNull
@@ -11,7 +12,9 @@ import org.ktorm.r2dbc.expression.ArgumentExpression
 import org.ktorm.r2dbc.expression.SqlExpression
 import org.ktorm.r2dbc.logging.Logger
 import org.ktorm.r2dbc.logging.detectLoggerImplementation
+import org.ktorm.r2dbc.schema.IntSqlType
 import org.ktorm.r2dbc.schema.SqlType
+import java.sql.PreparedStatement
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
@@ -293,7 +296,7 @@ public class Database(
                     )
                 }
                 if (logger.isDebugEnabled()) {
-                    logger.debug("Parameters: " + args.map { "${it.value}(${it.sqlType.javaType.simpleName})" })
+                    logger.debug("Parameters: " + args.map { it.value.toString() })
                 }
 
                 statement.bindParameters(args)
@@ -301,12 +304,32 @@ public class Database(
             }
 
             val results = statement.execute().toList()
-
-            /* if (logaddBatchger.isDebugEnabled()) {
-                 logger.debug("Effects: ${results?.contentToString()}")
-             }*/
-
             return results.map { result -> result.rowsUpdated.awaitFirst() }.toIntArray()
+        }
+    }
+
+    /**
+     * Format the given [expression] to a SQL string with its execution arguments, execute it via
+     * [Statement.execute], then return the effected row count along with the generated keys.
+     *
+     * @since 2.7
+     * @param expression the SQL expression to be executed.
+     * @return a [Pair] combines the effected row count and the generated keys.
+     */
+    public suspend fun executeUpdateAndRetrieveKeys(expression: SqlExpression): Pair<Int, Flow<Row>> {
+        val (sql, args) = formatExpression(expression)
+
+        if (logger.isDebugEnabled()) {
+            logger.debug("SQL: $sql")
+            logger.debug("Parameters: " + args.map { "${it.value}(${it.sqlType.javaType.simpleName})" })
+        }
+
+        useConnection {
+            val statement = it.createStatement(sql)
+            statement.bindParameters(args)
+            val rowsUpdated = statement.execute().awaitFirst().rowsUpdated.awaitFirst()
+            val rows = statement.returnGeneratedValues().execute().awaitFirst().map { row, _ -> row }.asFlow()
+            return Pair(rowsUpdated,rows)
         }
     }
 

@@ -17,7 +17,7 @@
 package org.ktorm.r2dbc.schema
 
 import org.ktorm.r2dbc.dsl.QueryRow
-import org.ktorm.r2dbc.entity.Entity
+import org.ktorm.r2dbc.entity.*
 import org.ktorm.r2dbc.entity.EntityImplementation
 import org.ktorm.r2dbc.entity.implementation
 import org.ktorm.r2dbc.entity.setColumnValue

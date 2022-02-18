@@ -711,7 +711,7 @@ public suspend inline fun <E : Any, T : BaseTable<E>, reified C : Any> EntitySeq
     val count = rowSet.count()
     if (count == 1) {
         val row = rowSet.first()
-        return aggregation.sqlType.getResult(row, row.metadata,0)
+        return aggregation.sqlType.getResult(row,0)
     } else {
         val (sql, _) = database.formatExpression(expr, beautifySql = true)
         throw IllegalStateException("Expected 1 row but $count returned from sql: \n\n$sql")
