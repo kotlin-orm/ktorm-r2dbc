@@ -134,7 +134,7 @@ public class EntitySequence<E : Any, T : BaseTable<E>>(
     }
 
     public suspend fun asFlow():Flow<E> {
-        return getRowSet().map(entityExtractor)
+        return getRowSet().map { entityExtractor(it) }
     }
 
 }
