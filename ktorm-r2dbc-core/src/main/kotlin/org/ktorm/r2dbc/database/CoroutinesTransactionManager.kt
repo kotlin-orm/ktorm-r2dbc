@@ -6,12 +6,21 @@ import io.r2dbc.spi.IsolationLevel
 import kotlinx.coroutines.reactive.awaitFirstOrNull
 import kotlinx.coroutines.reactive.awaitSingle
 import kotlinx.coroutines.withContext
+import java.sql.DriverManager
+import javax.sql.DataSource
 import kotlin.coroutines.AbstractCoroutineContextElement
 import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.coroutineContext
 
 /**
- * Created by vince on Jan 30, 2021.
+ * [TransactionManager] implementation based on R2DBC.
+ *
+ * This class is capable of working in any environment with any R2DBC driver. It accepts a [connectionFactory]
+ * used to obtain SQL connections.
+ *
+ * [Database] instances created by [Database.connect] functions use this implementation by default.
+ *
+ * @property connectionFactory A factory for creating [Connection]
  */
 public class CoroutinesTransactionManager(
     public val connectionFactory: ConnectionFactory

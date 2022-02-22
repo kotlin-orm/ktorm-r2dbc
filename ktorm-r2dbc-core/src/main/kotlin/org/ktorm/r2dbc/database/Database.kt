@@ -12,6 +12,7 @@ import org.ktorm.r2dbc.expression.SqlExpression
 import org.ktorm.r2dbc.logging.Logger
 import org.ktorm.r2dbc.logging.detectLoggerImplementation
 import org.ktorm.r2dbc.schema.SqlType
+import java.sql.PreparedStatement
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
@@ -156,6 +157,16 @@ public class Database(
         }
     }
 
+    /**
+     * Obtain a connection and invoke the callback function with it.
+     *
+     * If the current thread has opened a transaction, then this transaction's connection will be used.
+     * Otherwise, Ktorm will pass a new-created connection to the function and auto close it after it's
+     * not useful anymore.
+     *
+     * @param func the executed callback function.
+     * @return the result of the callback function.
+     */
     @OptIn(ExperimentalContracts::class)
     public suspend inline fun <T> useConnection(func: (Connection) -> T): T {
         contract {
@@ -176,6 +187,20 @@ public class Database(
         }
     }
 
+    /**
+     * Execute the specific callback function in a transaction and returns its result if the execution succeeds,
+     * otherwise, if the execution fails, the transaction will be rollback.
+     *
+     * Note:
+     *
+     * - Any exceptions thrown in the callback function can trigger a rollback.
+     * - This function is reentrant, so it can be called nested. However, the inner calls don’t open new transactions
+     * but share the same ones with outers.
+     *
+     * @param isolation transaction isolation, null for the default isolation level of the underlying datastore.
+     * @param func the executed callback function.
+     * @return the result of the callback function.
+     */
     @OptIn(ExperimentalContracts::class)
     public suspend fun <T> useTransaction(
         isolation: IsolationLevel? = null,
@@ -211,6 +236,14 @@ public class Database(
         }
     }
 
+    /**
+     * Format the specific [SqlExpression] to an executable SQL string with execution arguments.
+     *
+     * @param expression the expression to be formatted.
+     * @param beautifySql output beautiful SQL strings with line-wrapping and indentation, default to `false`.
+     * @param indentSize the indent size, default to 2.
+     * @return a [Pair] combines the SQL string and its execution arguments.
+     */
     public fun formatExpression(
         expression: SqlExpression,
         beautifySql: Boolean = false,
@@ -221,6 +254,16 @@ public class Database(
         return Pair(formatter.sql, formatter.parameters)
     }
 
+    /**
+     * Format the given [expression] to a SQL string with its execution arguments, then create
+     * a [Statement] from the this database using the SQL string and execute the specific
+     * callback function with it. After the callback function completes.
+     *
+     * @since 2.7
+     * @param expression the SQL expression to be executed.
+     * @param func the callback function.
+     * @return the result of the callback function.
+     */
     @OptIn(ExperimentalContracts::class)
     public suspend inline fun <T> executeExpression(expression: SqlExpression, func: (Result) -> T): T {
         contract {
@@ -247,6 +290,14 @@ public class Database(
         }
     }
 
+    /**
+     * Format the given [expression] to a SQL string with its execution arguments, then execute it via
+     * [Statement.execute] and return the result [Flow].
+     *
+     * @since 2.7
+     * @param expression the SQL expression to be executed.
+     * @return the result [Flow].
+     */
     public suspend fun executeQuery(expression: SqlExpression): Flow<Row> {
         executeExpression(expression) { result ->
             return result.map { row, _ -> row }.asFlow()

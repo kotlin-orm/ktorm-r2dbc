@@ -5,7 +5,20 @@ import org.ktorm.r2dbc.expression.SqlFormatter
 import java.util.*
 
 /**
- * Created by vince on Feb 08, 2021.
+ * Representation of a SQL dialect.
+ *
+ * It's known that there is a uniform standard for SQL language, but beyond the standard, many databases still have
+ * their special features. The interface provides an extension mechanism for Ktorm and its extension modules to support
+ * those dialect-specific SQL features.
+ *
+ * Implementations of this interface are recommended to be published as separated modules independent of ktorm-core.
+ *
+ * To enable a dialect, applications should add the dialect module to the classpath first, then configure the `dialect`
+ * parameter to the dialect implementation while creating database instances via [Database.connect] functions.
+ *
+ * Ktorm's dialect modules start following the convention of JDK [ServiceLoader] SPI, so we don't
+ * need to specify the `dialect` parameter explicitly anymore while creating [Database] instances. Ktorm auto detects
+ * one for us from the classpath. We just need to insure the dialect module exists in the dependencies.
  */
 public interface SqlDialect {
 

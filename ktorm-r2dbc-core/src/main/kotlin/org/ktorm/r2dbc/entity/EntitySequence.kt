@@ -16,6 +16,7 @@
 
 package org.ktorm.r2dbc.entity
 
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.*
 import org.ktorm.r2dbc.database.Database
 import org.ktorm.r2dbc.database.DialectFeatureNotSupportedException

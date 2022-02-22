@@ -23,8 +23,7 @@ import io.r2dbc.spi.IsolationLevel
  * Transaction manager abstraction used to manage database connections and transactions.
  *
  * Applications can use this interface directly, but it is not primary meant as API:
- * Typically, transactions are used by calling the [Database.useTransaction] function or
- * Spring's [Transactional] annotation if the Spring support is enabled.
+ * Typically, transactions are used by calling the [Database.useTransaction] function.
  */
 public interface TransactionManager {
 
@@ -34,10 +33,17 @@ public interface TransactionManager {
     public val defaultIsolation: IsolationLevel?
 
     /**
-     * The opened transaction of the current thread, null if there is no transaction opened.
+     * The opened transaction of the current [CoroutineContext], null if there is no transaction opened.
      */
     public suspend fun getCurrentTransaction(): Transaction?
 
+    /**
+     * Open a new transaction for the [CoroutineContext] using the specific isolation.
+     *
+     * @param isolation the transaction isolation, by default, [defaultIsolation] is used.
+     * @return the result of the callback function.
+     * @throws [IllegalStateException] if there is already a transaction opened.
+     */
     public suspend fun <T> useTransaction(
         isolation: IsolationLevel? = defaultIsolation,
         func: suspend (Transaction) -> T
