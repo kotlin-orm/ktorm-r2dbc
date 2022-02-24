@@ -16,12 +16,12 @@
 
 package org.ktorm.r2dbc.entity
 
-import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.*
 import org.ktorm.r2dbc.database.Database
 import org.ktorm.r2dbc.database.DialectFeatureNotSupportedException
 import org.ktorm.r2dbc.dsl.*
-import org.ktorm.r2dbc.expression.*
+import org.ktorm.r2dbc.expression.OrderByExpression
+import org.ktorm.r2dbc.expression.SelectExpression
 import org.ktorm.r2dbc.schema.BaseTable
 import org.ktorm.r2dbc.schema.Column
 import org.ktorm.r2dbc.schema.ColumnDeclaring
@@ -41,18 +41,18 @@ import kotlin.math.min
  * ```
  *
  * Now we got a default sequence, which can obtain all employees from the table. Please know that Ktorm doesn't execute
- * the query right now. The sequence provides an iterator of type `Iterator<Employee>`, only when we iterate the
- * sequence using the iterator, the query is executed. The following code prints all employees using a for-each loop:
+ * the query right now. The sequence provides an flow of type `Flow<Employee>`, only when we collect the
+ * sequence using the flow, the query is executed. The following code prints all employees using a forEach loop:
  *
  * ```kotlin
- * for (employee in sequence) {
+ * sequence.forEach { employee ->
  *     println(employee)
  * }
  * ```
  *
  * This class wraps a [Query] object, and it’s iterator exactly wraps the query’s iterator. While an entity sequence is
  * iterated, its internal query is executed, and the [entityExtractor] function is applied to create an entity object
- * for each row. As for other properties in sequences (such as [sql], [rowSet], [totalRecords], etc), all of them
+ * for each row. As for other properties in sequences (such as [sql], [getRowSet], [totalRecords], etc), all of them
  * delegates the callings to their internal query objects, and their usages are totally the same as the corresponding
  * properties in [Query] class.
  *
@@ -104,10 +104,9 @@ public class EntitySequence<E : Any, T : BaseTable<E>>(
     public val sql: String get() = query.sql
 
     /**
-     * The [ResultSet] object of the internal query, lazy initialized after first access, obtained from the database by
-     * executing the generated SQL.
+     * The [QueryRow] object flow of the internal query
      *
-     * This property is delegated to [Query.rowSet], more details can be found in its documentation.
+     * This function is invoke [Query.doQuery], more details can be found in its documentation.
      */
     public suspend fun getRowSet(): Flow<QueryRow> = query.doQuery()
 
@@ -133,6 +132,9 @@ public class EntitySequence<E : Any, T : BaseTable<E>>(
         return asFlow().toList().asSequence()
     }
 
+    /**
+     * Return an flow over the elements of this sequence.
+     */
     public suspend fun asFlow():Flow<E> {
         return getRowSet().map { entityExtractor(it) }
     }

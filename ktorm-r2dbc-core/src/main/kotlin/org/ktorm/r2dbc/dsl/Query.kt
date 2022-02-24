@@ -23,7 +23,6 @@ import org.ktorm.r2dbc.schema.BooleanSqlType
 import org.ktorm.r2dbc.schema.Column
 import org.ktorm.r2dbc.schema.ColumnDeclaring
 import org.ktorm.r2dbc.schema.LongSqlType
-import java.sql.ResultSet
 
 /**
  * [Query] is an abstraction of query operations and the core class of Ktorm's query DSL.
@@ -79,10 +78,16 @@ public class Query(public val database: Database, public val expression: QueryEx
         database.formatExpression(expression, beautifySql = true).first
     }
 
+    /**
+     * The [QueryRow] object flow of this query
+     */
     public suspend fun doQuery(expression: QueryExpression = this.expression): Flow<QueryRow> {
         return database.executeQuery(expression).map { QueryRow(this@Query, it) }
     }
 
+    /**
+     * The [QueryRow] object flow of this query
+     */
     public suspend fun asFlow(): Flow<QueryRow> {
         return this.doQuery()
     }

@@ -18,6 +18,7 @@ package org.ktorm.r2dbc.database
 
 import io.r2dbc.spi.Connection
 import io.r2dbc.spi.IsolationLevel
+import kotlin.coroutines.CoroutineContext
 
 /**
  * Transaction manager abstraction used to manage database connections and transactions.
