@@ -42,6 +42,7 @@ public interface TransactionManager {
      * Open a new transaction for the [CoroutineContext] using the specific isolation.
      *
      * @param isolation the transaction isolation, by default, [defaultIsolation] is used.
+     * @param func the executed callback function.
      * @return the result of the callback function.
      * @throws [IllegalStateException] if there is already a transaction opened.
      */
