@@ -16,8 +16,9 @@
 
 package org.ktorm.r2dbc.schema
 
-import io.r2dbc.spi.Row
+import org.ktorm.r2dbc.dsl.QueryRow
 import org.ktorm.r2dbc.expression.TableExpression
+import org.ktorm.r2dbc.schema.*
 import java.util.*
 import kotlin.reflect.KClass
 import kotlin.reflect.jvm.jvmErasure
@@ -195,7 +196,7 @@ public abstract class BaseTable<E : Any>(
      */
     public fun <C : Any, R : Any> Column<C>.transform(
         fromUnderlyingValue: (C) -> R,
-        toUnderlyingValue: (R) -> C
+        toUnderlyingValue: (R) -> C,
     ): Column<R> {
         checkRegistered()
         checkTransformable()
@@ -231,17 +232,19 @@ public abstract class BaseTable<E : Any>(
     private fun <C : Any> Column<C>.checkConflictBinding(binding: ColumnBinding) {
         for (column in _columns.values) {
             val hasConflict = when (binding) {
-                is NestedBinding -> column.allBindings
-                    .filterIsInstance<NestedBinding>()
-                    .filter { it.properties == binding.properties }
-                    .any()
-                is ReferenceBinding -> column.allBindings
-                    .filterIsInstance<ReferenceBinding>()
-                    .filter { it.referenceTable.tableName == binding.referenceTable.tableName }
-                    .filter { it.referenceTable.catalog == binding.referenceTable.catalog }
-                    .filter { it.referenceTable.schema == binding.referenceTable.schema }
-                    .filter { it.onProperty == binding.onProperty }
-                    .any()
+                is NestedBinding ->
+                    column.allBindings
+                        .filterIsInstance<NestedBinding>()
+                        .filter { it.properties == binding.properties }
+                        .any()
+                is ReferenceBinding ->
+                    column.allBindings
+                        .filterIsInstance<ReferenceBinding>()
+                        .filter { it.referenceTable.tableName == binding.referenceTable.tableName }
+                        .filter { it.referenceTable.catalog == binding.referenceTable.catalog }
+                        .filter { it.referenceTable.schema == binding.referenceTable.schema }
+                        .filter { it.onProperty == binding.onProperty }
+                        .any()
             }
 
             if (hasConflict) {
@@ -345,13 +348,13 @@ public abstract class BaseTable<E : Any>(
      * it is equivalent to `c.bindTo { it.department.id }` in this case, that avoids unnecessary object creations
      * and some exceptions raised by conflict column names.
      */
-    public fun createEntity(row: Row, withReferences: Boolean = true): E {
+    public fun createEntity(row: QueryRow, withReferences: Boolean = true): E {
         val entity = doCreateEntity(row, withReferences)
 
-//        val logger = row.query.database.logger
-//        if (logger.isTraceEnabled()) {
-//            logger.trace("Entity: $entity")
-//        }
+        val logger = row.query.database.logger
+        if (logger.isTraceEnabled()) {
+            logger.trace("Entity: $entity")
+        }
 
         return entity
     }
@@ -362,7 +365,7 @@ public abstract class BaseTable<E : Any>(
      * This function is called by [createEntity]. Subclasses should override it and implement the actual logic of
      * retrieving an entity object from the query results.
      */
-    protected abstract fun doCreateEntity(row: Row, withReferences: Boolean): E
+    protected abstract fun doCreateEntity(row: QueryRow, withReferences: Boolean): E
 
     /**
      * Convert this table to a [TableExpression].

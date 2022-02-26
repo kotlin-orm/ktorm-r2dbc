@@ -1,9 +1,9 @@
 
 buildscript {
     ext {
-        kotlinVersion = "1.4.21"
-        coroutinesVersion = "1.4.2"
-        r2dbcVersion = "0.8.3.RELEASE"
+        kotlinVersion = "1.6.10"
+        coroutinesVersion = "1.6.0"
+        r2dbcVersion = "0.9.1.RELEASE"
         detektVersion = "1.12.0-RC1"
     }
     repositories {
@@ -14,6 +14,7 @@ buildscript {
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:${kotlinVersion}"
         classpath "com.jfrog.bintray.gradle:gradle-bintray-plugin:1.8.4"
         classpath "io.gitlab.arturbosch.detekt:detekt-gradle-plugin:${detektVersion}"
+        classpath "org.jetbrains.kotlinx:kotlinx-coroutines-reactive:${coroutinesVersion}"
     }
 }
 
@@ -27,7 +28,7 @@ subprojects { project ->
     apply plugin: "maven-publish"
     apply plugin: "com.jfrog.bintray"
     apply plugin: "io.gitlab.arturbosch.detekt"
-    // apply from: "${project.rootDir}/check-source-header.gradle"
+     apply from: "${project.rootDir}/check-source-header.gradle"
 
     repositories {
         jcenter()
@@ -96,6 +97,11 @@ subprojects { project ->
                             id = "vincentlauvlwj"
                             name = "vince"
                             email = "me@liuwj.me"
+                        }
+                        developer {
+                            id = "lookup-cat"
+                            name = "夜里的向日葵"
+                            email = "641571835@qq.com"
                         }
                     }
                     scm {
